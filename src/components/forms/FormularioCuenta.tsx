@@ -36,7 +36,7 @@ const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 interface PropiedadesFormularioCuenta {
-  cuenta?: Cuenta; // Para edición
+  cuenta?: Cuenta;
   onGuardar: (datos: CrearCuentaInput) => Promise<boolean>;
   onCancelar: () => void;
   cargando?: boolean;
@@ -151,11 +151,6 @@ const FormularioCuenta: React.FC<PropiedadesFormularioCuenta> = ({
     }
   };
 
-  const obtenerIconoTipo = (tipo: TipoCuenta) => {
-    const tipoInfo = tiposCuenta.find(t => t.value === tipo);
-    return tipoInfo?.icon || <BankOutlined />;
-  };
-
   return (
     <Card
       style={{
@@ -212,15 +207,22 @@ const FormularioCuenta: React.FC<PropiedadesFormularioCuenta> = ({
               >
                 {tiposCuenta.map(tipo => (
                   <Select.Option key={tipo.value} value={tipo.value}>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <span style={{ marginRight: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', padding: '8px 0' }}>
+                      <span style={{ marginRight: '12px', fontSize: '16px' }}>
                         {tipo.icon}
                       </span>
-                      <div>
-                        <div>{tipo.label}</div>
-                        <Text type="secondary" style={{ fontSize: '12px' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 500, fontSize: '15px' }}>
+                          {tipo.label}
+                        </div>
+                        <div style={{ 
+                          fontSize: '13px', 
+                          color: '#8c8c8c',
+                          lineHeight: '1.2',
+                          marginTop: '2px'
+                        }}>
                           {tipo.description}
-                        </Text>
+                        </div>
                       </div>
                     </div>
                   </Select.Option>
@@ -241,15 +243,21 @@ const FormularioCuenta: React.FC<PropiedadesFormularioCuenta> = ({
                 style={{ height: '48px' }}
               >
                 <Select.Option value={Moneda.ARS}>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <span style={{ marginRight: '8px' }}>🇦🇷</span>
-                    Pesos Argentinos (ARS)
+                  <div style={{ display: 'flex', alignItems: 'center', padding: '4px 0' }}>
+                    <span style={{ marginRight: '8px', fontSize: '16px' }}>🇦🇷</span>
+                    <div>
+                      <div style={{ fontWeight: 500 }}>Pesos Argentinos</div>
+                      <div style={{ fontSize: '13px', color: '#8c8c8c' }}>ARS</div>
+                    </div>
                   </div>
                 </Select.Option>
                 <Select.Option value={Moneda.USD}>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <span style={{ marginRight: '8px' }}>🇺🇸</span>
-                    Dólares Estadounidenses (USD)
+                  <div style={{ display: 'flex', alignItems: 'center', padding: '4px 0' }}>
+                    <span style={{ marginRight: '8px', fontSize: '16px' }}>🇺🇸</span>
+                    <div>
+                      <div style={{ fontWeight: 500 }}>Dólares Estadounidenses</div>
+                      <div style={{ fontSize: '13px', color: '#8c8c8c' }}>USD</div>
+                    </div>
                   </div>
                 </Select.Option>
               </Select>
@@ -304,7 +312,7 @@ const FormularioCuenta: React.FC<PropiedadesFormularioCuenta> = ({
               ))}
             </Row>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
               <Text type="secondary">Color personalizado:</Text>
               <ColorPicker
                 value={colorSeleccionado}
@@ -317,7 +325,6 @@ const FormularioCuenta: React.FC<PropiedadesFormularioCuenta> = ({
             {/* Vista previa */}
             <div 
               style={{ 
-                marginTop: '12px',
                 padding: '12px',
                 border: '1px solid #d9d9d9',
                 borderRadius: '6px',

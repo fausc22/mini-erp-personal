@@ -11,7 +11,7 @@ export const esquemaCrearUsuario = z.object({
     .email('Debe ser un email válido')
     .max(255, 'El email no puede exceder 255 caracteres')
     .toLowerCase(),
-  password: z.string() // ✅ Cambiar de 'contraseña' a 'password'
+  password: z.string()
     .min(6, 'La contraseña debe tener al menos 6 caracteres')
     .max(100, 'La contraseña no puede exceder 100 caracteres')
     .regex(/^(?=.*[a-zA-Z])(?=.*\d)/, 'La contraseña debe contener al menos una letra y un número'),
@@ -19,7 +19,7 @@ export const esquemaCrearUsuario = z.object({
 
 export const esquemaLogin = z.object({
   email: z.string().email('Email inválido').toLowerCase(),
-  password: z.string().min(1, 'La contraseña es requerida'), // ✅ Cambiar aquí también
+  password: z.string().min(1, 'La contraseña es requerida'),
 });
 
 export const esquemaActualizarUsuario = z.object({
@@ -62,7 +62,7 @@ export const esquemaActualizarCuenta = esquemaCrearCuenta.partial().extend({
   id: z.string().cuid('ID de cuenta inválido'),
 });
 
-// Validaciones para Transacción
+// Validaciones para Transacción (actualizada)
 export const esquemaCrearTransaccion = z.object({
   cuentaId: z.string().cuid('ID de cuenta inválido'),
   tipo: z.nativeEnum(TipoTransaccion, {
@@ -82,13 +82,14 @@ export const esquemaCrearTransaccion = z.object({
   notas: z.string()
     .max(1000, 'Las notas no pueden exceder 1000 caracteres')
     .optional(),
+  articuloId: z.string().cuid('ID de artículo inválido').optional(), // ✅ Nuevo campo
 });
 
 export const esquemaActualizarTransaccion = esquemaCrearTransaccion.partial().extend({
   id: z.string().cuid('ID de transacción inválido'),
 });
 
-// Validaciones para Artículo
+// Validaciones para Artículo (actualizada)
 export const esquemaCrearArticulo = z.object({
   nombre: z.string()
     .min(1, 'El nombre es requerido')
@@ -126,13 +127,43 @@ export const esquemaCrearArticulo = z.object({
   tipo: z.nativeEnum(TipoArticulo, {
     errorMap: () => ({ message: 'Tipo de artículo inválido' })
   }),
+  // ✅ Nuevos campos para gastos
+  esRecurrente: z.boolean().optional().default(false),
+  frecuencia: z.enum(['MENSUAL', 'TRIMESTRAL', 'ANUAL']).optional(),
+}).refine((data) => {
+  // Si es recurrente, debe tener frecuencia
+  if (data.esRecurrente && !data.frecuencia) {
+    return false;
+  }
+  // Si no es recurrente, no debe tener frecuencia
+  if (!data.esRecurrente && data.frecuencia) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'Los gastos recurrentes deben tener una frecuencia definida',
+  path: ['frecuencia'],
+}).refine((data) => {
+  // Campos específicos según el tipo
+  if (data.tipo === TipoArticulo.SERVICIO) {
+    // Los servicios no deben tener stock ni código de barras
+    return data.stock === 0 && data.stockMinimo === 0 && !data.codigoBarras;
+  }
+  if (data.tipo === TipoArticulo.GASTO) {
+    // Los gastos no deben tener stock ni código de barras
+    return data.stock === 0 && data.stockMinimo === 0 && !data.codigoBarras;
+  }
+  return true;
+}, {
+  message: 'Los servicios y gastos no pueden tener stock ni código de barras',
+  path: ['stock'],
 });
 
 export const esquemaActualizarArticulo = esquemaCrearArticulo.partial().extend({
   id: z.string().cuid('ID de artículo inválido'),
 });
 
-// Validaciones para Categoría
+// Validaciones para Categoría (actualizada)
 export const esquemaCrearCategoria = z.object({
   nombre: z.string()
     .min(1, 'El nombre es requerido')
@@ -154,7 +185,7 @@ export const esquemaActualizarCategoria = esquemaCrearCategoria.partial().extend
   id: z.string().cuid('ID de categoría inválido'),
 });
 
-// Validaciones para filtros
+// Validaciones para filtros (actualizada)
 export const esquemaFiltrosTransaccion = z.object({
   cuentaId: z.string().cuid().optional(),
   tipo: z.nativeEnum(TipoTransaccion).optional(),
@@ -164,6 +195,7 @@ export const esquemaFiltrosTransaccion = z.object({
   montoMinimo: z.number().min(0).optional(),
   montoMaximo: z.number().min(0).optional(),
   moneda: z.nativeEnum(Moneda).optional(),
+  tipoArticulo: z.nativeEnum(TipoArticulo).optional(), // ✅ Nuevo filtro
 });
 
 export const esquemaFiltrosArticulo = z.object({
@@ -203,6 +235,7 @@ export const esquemaParametrosReporte = z.object({
   categoriaIds: z.array(z.string().cuid()).optional(),
   tipoTransaccion: z.nativeEnum(TipoTransaccion).optional(),
   moneda: z.nativeEnum(Moneda).optional(),
+  tipoArticulo: z.nativeEnum(TipoArticulo).optional(), // ✅ Nuevo filtro
 }).refine((data) => data.fechaInicio <= data.fechaFin, {
   message: 'La fecha de inicio debe ser anterior a la fecha de fin',
   path: ['fechaFin'],

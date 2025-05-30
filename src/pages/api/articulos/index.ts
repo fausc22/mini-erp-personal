@@ -89,8 +89,25 @@ async function obtenerArticulos(req: RequestConUsuario, res: NextApiResponse) {
     }
 
     if (filtros.stockBajo) {
+      // Solo aplicar filtro de stock bajo a productos
       whereClause.AND = [
-        { stock: { lte: prisma.articulo.fields.stockMinimo } }
+        { tipo: 'PRODUCTO' },
+        {
+          OR: [
+            { 
+              AND: [
+                { stockMinimo: { gt: 0 } },
+                { stock: { lte: prisma.articulo.fields.stockMinimo } }
+              ]
+            },
+            {
+              AND: [
+                { stockMinimo: 0 },
+                { stock: { lte: 0 } }
+              ]
+            }
+          ]
+        }
       ];
     }
 
@@ -115,7 +132,8 @@ async function obtenerArticulos(req: RequestConUsuario, res: NextApiResponse) {
       where: whereClause,
       orderBy: [
         { activo: 'desc' }, // Activos primero
-        { nombre: 'asc' }, // Ordenar por nombre
+        { tipo: 'asc' },    // Ordenar por tipo
+        { nombre: 'asc' },  // Luego por nombre
       ],
       skip: paginacion.offset,
       take: limite,
@@ -129,6 +147,11 @@ async function obtenerArticulos(req: RequestConUsuario, res: NextApiResponse) {
             icono: true,
           },
         },
+        _count: {
+          select: {
+            transacciones: true,
+          },
+        },
       },
     });
 
@@ -137,7 +160,17 @@ async function obtenerArticulos(req: RequestConUsuario, res: NextApiResponse) {
       totalArticulos: articulos.length,
       productosActivos: articulos.filter(a => a.activo && a.tipo === 'PRODUCTO').length,
       serviciosActivos: articulos.filter(a => a.activo && a.tipo === 'SERVICIO').length,
-      stockBajo: articulos.filter(a => a.activo && a.stock <= (a.stockMinimo || 0)).length,
+      gastosActivos: articulos.filter(a => a.activo && a.tipo === 'GASTO').length,
+      stockBajo: articulos.filter(a => 
+        a.activo && 
+        a.tipo === 'PRODUCTO' && 
+        a.stock <= (a.stockMinimo || 0)
+      ).length,
+      gastosRecurrentes: articulos.filter(a => 
+        a.activo && 
+        a.tipo === 'GASTO' && 
+        a.esRecurrente
+      ).length,
       valorTotalInventario: articulos
         .filter(a => a.activo && a.tipo === 'PRODUCTO')
         .reduce((sum, a) => sum + (a.precio * a.stock), 0),
@@ -231,6 +264,18 @@ async function crearArticulo(req: RequestConUsuario, res: NextApiResponse) {
       // Para servicios, el stock debería ser 0 o no aplicar
       datosArticulo.stock = 0;
       datosArticulo.stockMinimo = 0;
+      datosArticulo.codigoBarras = undefined;
+      datosArticulo.esRecurrente = false;
+      datosArticulo.frecuencia = undefined;
+    } else if (datosArticulo.tipo === 'GASTO') {
+      // Para gastos, el stock debería ser 0
+      datosArticulo.stock = 0;
+      datosArticulo.stockMinimo = 0;
+      datosArticulo.codigoBarras = undefined;
+    } else if (datosArticulo.tipo === 'PRODUCTO') {
+      // Para productos, no puede ser recurrente
+      datosArticulo.esRecurrente = false;
+      datosArticulo.frecuencia = undefined;
     }
 
     // Crear el artículo
@@ -254,7 +299,9 @@ async function crearArticulo(req: RequestConUsuario, res: NextApiResponse) {
 
     return res.status(201).json(respuestaExito(
       nuevoArticulo,
-      `${datosArticulo.tipo === 'PRODUCTO' ? 'Producto' : 'Servicio'} creado exitosamente`
+      `${datosArticulo.tipo === 'PRODUCTO' ? 'Producto' : 
+         datosArticulo.tipo === 'SERVICIO' ? 'Servicio' : 
+         'Gasto'} creado exitosamente`
     ));
 
   } catch (error) {

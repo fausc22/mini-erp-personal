@@ -14,7 +14,10 @@ import {
   InputNumber,
   Radio,
   Divider,
-  message
+  message,
+  Row,
+  Col,
+  Switch
 } from 'antd';
 import {
   WalletOutlined,
@@ -25,13 +28,17 @@ import {
   CalendarOutlined,
   TagsOutlined,
   FileTextOutlined,
+  ShoppingCartOutlined,
+  BoxPlotOutlined,
+  ToolOutlined,
 } from '@ant-design/icons';
 import { useApp } from '@/context/AppContext';
 import { 
   TipoTransaccion, 
   CrearTransaccionInput, 
   Transaccion,
-  TipoCategoria 
+  TipoCategoria,
+  TipoArticulo
 } from '@/types';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
@@ -43,7 +50,7 @@ const { TextArea } = Input;
 const { Option } = Select;
 
 interface PropiedadesFormularioTransaccion {
-  transaccion?: Transaccion; // Para edición
+  transaccion?: Transaccion;
   onGuardar: (datos: CrearTransaccionInput) => Promise<boolean>;
   onCancelar: () => void;
   cargando?: boolean;
@@ -56,25 +63,61 @@ const FormularioTransaccion: React.FC<PropiedadesFormularioTransaccion> = ({
   cargando = false,
 }) => {
   const [form] = Form.useForm();
-  const { cuentas, categorias } = useApp();
+  const { cuentas, categorias, articulos } = useApp();
   const [tipoSeleccionado, setTipoSeleccionado] = useState<TipoTransaccion>(
     transaccion?.tipo || TipoTransaccion.GASTO
   );
   const [cuentaSeleccionada, setCuentaSeleccionada] = useState<string | undefined>(
     transaccion?.cuentaId
   );
+  const [usarArticulo, setUsarArticulo] = useState<boolean>(false);
+  const [tipoArticuloFiltro, setTipoArticuloFiltro] = useState<TipoArticulo | undefined>();
+  const [articuloSeleccionado, setArticuloSeleccionado] = useState<string | undefined>(
+    transaccion?.articuloId
+  );
 
   // Filtrar cuentas activas
   const cuentasActivas = cuentas.filter(cuenta => cuenta.activa);
 
-  // Filtrar categorías activas (solo PRODUCTO para transacciones)
-  const categoriasDisponibles = categorias.filter(categoria => 
-    categoria.activa && categoria.tipo === TipoCategoria.PRODUCTO
-  );
+  // Filtrar categorías activas según el tipo de transacción
+  const categoriasDisponibles = categorias.filter(categoria => {
+    if (!categoria.activa) return false;
+    
+    // Para ingresos, solo categorías de productos y servicios
+    if (tipoSeleccionado === TipoTransaccion.INGRESO) {
+      return categoria.tipo === TipoCategoria.PRODUCTO || categoria.tipo === TipoCategoria.SERVICIO;
+    }
+    
+    // Para gastos, todas las categorías
+    return true;
+  });
+
+  // Filtrar artículos según el tipo seleccionado y tipo de transacción
+  const articulosDisponibles = articulos.filter(articulo => {
+    if (!articulo.activo) return false;
+    
+    if (tipoSeleccionado === TipoTransaccion.INGRESO) {
+      // Para ingresos, solo productos y servicios
+      return articulo.tipo === TipoArticulo.PRODUCTO || articulo.tipo === TipoArticulo.SERVICIO;
+    } else if (tipoSeleccionado === TipoTransaccion.GASTO) {
+      // Para gastos, todos los tipos
+      if (tipoArticuloFiltro) {
+        return articulo.tipo === tipoArticuloFiltro;
+      }
+      return true;
+    }
+    
+    return false;
+  });
 
   // Obtener información de la cuenta seleccionada
   const cuentaInfo = cuentaSeleccionada 
     ? cuentasActivas.find(c => c.id === cuentaSeleccionada)
+    : null;
+
+  // Obtener información del artículo seleccionado
+  const articuloInfo = articuloSeleccionado
+    ? articulos.find(a => a.id === articuloSeleccionado)
     : null;
 
   useEffect(() => {
@@ -88,9 +131,20 @@ const FormularioTransaccion: React.FC<PropiedadesFormularioTransaccion> = ({
         categoriaId: transaccion.categoriaId,
         fecha: dayjs(transaccion.fecha),
         notas: transaccion.notas,
+        articuloId: transaccion.articuloId,
       });
       setTipoSeleccionado(transaccion.tipo);
       setCuentaSeleccionada(transaccion.cuentaId);
+      setUsarArticulo(!!transaccion.articuloId);
+      setArticuloSeleccionado(transaccion.articuloId);
+      
+      // Establecer el filtro de tipo si hay artículo seleccionado
+      if (transaccion.articuloId) {
+        const articulo = articulos.find(a => a.id === transaccion.articuloId);
+        if (articulo) {
+          setTipoArticuloFiltro(articulo.tipo);
+        }
+      }
     } else {
       // Modo creación: valores por defecto
       form.setFieldsValue({
@@ -98,15 +152,55 @@ const FormularioTransaccion: React.FC<PropiedadesFormularioTransaccion> = ({
         fecha: dayjs(),
       });
     }
-  }, [transaccion, form]);
+  }, [transaccion, form, articulos]);
 
   const manejarCambioTipo = (tipo: TipoTransaccion) => {
     setTipoSeleccionado(tipo);
     form.setFieldValue('tipo', tipo);
+    
+    // Limpiar selecciones que pueden no ser válidas para el nuevo tipo
+    setUsarArticulo(false);
+    setTipoArticuloFiltro(undefined);
+    setArticuloSeleccionado(undefined);
+    form.setFieldsValue({
+      articuloId: undefined,
+      categoriaId: undefined,
+    });
   };
 
   const manejarCambioCuenta = (cuentaId: string) => {
     setCuentaSeleccionada(cuentaId);
+  };
+
+  const manejarCambioUsarArticulo = (usar: boolean) => {
+    setUsarArticulo(usar);
+    if (!usar) {
+      setTipoArticuloFiltro(undefined);
+      setArticuloSeleccionado(undefined);
+      form.setFieldsValue({
+        articuloId: undefined,
+      });
+    }
+  };
+
+  const manejarCambioTipoArticulo = (tipo: TipoArticulo) => {
+    setTipoArticuloFiltro(tipo);
+    setArticuloSeleccionado(undefined);
+    form.setFieldValue('articuloId', undefined);
+  };
+
+  const manejarCambioArticulo = (articuloId: string) => {
+    setArticuloSeleccionado(articuloId);
+    const articulo = articulos.find(a => a.id === articuloId);
+    
+    if (articulo) {
+      // Auto-completar datos del artículo
+      form.setFieldsValue({
+        descripcion: articulo.nombre,
+        monto: articulo.precio,
+        categoriaId: articulo.categoriaId,
+      });
+    }
   };
 
   const manejarEnvio = async (valores: any) => {
@@ -114,6 +208,7 @@ const FormularioTransaccion: React.FC<PropiedadesFormularioTransaccion> = ({
       const datosTransaccion: CrearTransaccionInput = {
         ...valores,
         fecha: valores.fecha.toDate(),
+        articuloId: usarArticulo ? valores.articuloId : undefined,
       };
 
       const exito = await onGuardar(datosTransaccion);
@@ -132,6 +227,9 @@ const FormularioTransaccion: React.FC<PropiedadesFormularioTransaccion> = ({
             tipo: tipoSeleccionado,
             fecha: dayjs(),
           });
+          setUsarArticulo(false);
+          setTipoArticuloFiltro(undefined);
+          setArticuloSeleccionado(undefined);
         }
       }
     } catch (error) {
@@ -144,6 +242,24 @@ const FormularioTransaccion: React.FC<PropiedadesFormularioTransaccion> = ({
       return Promise.reject('El monto excede el saldo disponible');
     }
     return Promise.resolve();
+  };
+
+  const obtenerIconoTipoArticulo = (tipo: TipoArticulo) => {
+    switch (tipo) {
+      case TipoArticulo.PRODUCTO: return <BoxPlotOutlined />;
+      case TipoArticulo.SERVICIO: return <ToolOutlined />;
+      case TipoArticulo.GASTO: return <WalletOutlined />;
+      default: return <ShoppingCartOutlined />;
+    }
+  };
+
+  const obtenerNombreTipoArticulo = (tipo: TipoArticulo) => {
+    switch (tipo) {
+      case TipoArticulo.PRODUCTO: return 'Productos';
+      case TipoArticulo.SERVICIO: return 'Servicios';
+      case TipoArticulo.GASTO: return 'Gastos';
+      default: return tipo;
+    }
   };
 
   return (
@@ -263,43 +379,148 @@ const FormularioTransaccion: React.FC<PropiedadesFormularioTransaccion> = ({
           />
         )}
 
-        <Space.Compact style={{ width: '100%' }}>
-          {/* Monto */}
-          <Form.Item
-            name="monto"
-            label={<Text strong style={{ fontSize: '16px' }}>Monto</Text>}
-            rules={[
-              { required: true, message: 'Ingresa el monto' },
-              { type: 'number', min: 0.01, message: 'El monto debe ser mayor a 0' },
-              { validator: validarSaldo },
-            ]}
-            style={{ width: '70%' }}
-          >
-            <InputNumber
-              placeholder="0.00"
-              style={{ width: '100%', height: '48px' }}
-              prefix={<DollarOutlined />}
-              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
-              parser={(value) => value!.replace(/\$\s?|(\.*)/g, '')}
-              precision={2}
+        {/* Opción de usar artículo del inventario */}
+        <Form.Item
+          label={<Text strong style={{ fontSize: '16px' }}>Vincular con Inventario</Text>}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Switch
+              checked={usarArticulo}
+              onChange={manejarCambioUsarArticulo}
             />
-          </Form.Item>
+            <Text>
+              {tipoSeleccionado === TipoTransaccion.INGRESO 
+                ? 'Seleccionar producto o servicio vendido'
+                : 'Seleccionar artículo o tipo de gasto'
+              }
+            </Text>
+          </div>
+        </Form.Item>
+
+        {/* Filtros de artículos cuando está habilitado */}
+        {usarArticulo && (
+          <>
+            {tipoSeleccionado === TipoTransaccion.GASTO && (
+              <Form.Item
+                label={<Text strong style={{ fontSize: '16px' }}>Tipo de Artículo</Text>}
+              >
+                <Radio.Group
+                  value={tipoArticuloFiltro}
+                  onChange={(e) => manejarCambioTipoArticulo(e.target.value)}
+                  style={{ width: '100%' }}
+                >
+                  <Radio.Button
+                    value={TipoArticulo.PRODUCTO}
+                    style={{ width: '33.33%', textAlign: 'center' }}
+                  >
+                    {obtenerIconoTipoArticulo(TipoArticulo.PRODUCTO)}
+                    <span style={{ marginLeft: '4px' }}>Productos</span>
+                  </Radio.Button>
+                  <Radio.Button
+                    value={TipoArticulo.SERVICIO}
+                    style={{ width: '33.33%', textAlign: 'center' }}
+                  >
+                    {obtenerIconoTipoArticulo(TipoArticulo.SERVICIO)}
+                    <span style={{ marginLeft: '4px' }}>Servicios</span>
+                  </Radio.Button>
+                  <Radio.Button
+                    value={TipoArticulo.GASTO}
+                    style={{ width: '33.33%', textAlign: 'center' }}
+                  >
+                    {obtenerIconoTipoArticulo(TipoArticulo.GASTO)}
+                    <span style={{ marginLeft: '4px' }}>Gastos</span>
+                  </Radio.Button>
+                </Radio.Group>
+              </Form.Item>
+            )}
+
+            <Form.Item
+              name="articuloId"
+              label={<Text strong style={{ fontSize: '16px' }}>
+                {tipoSeleccionado === TipoTransaccion.INGRESO ? 'Producto/Servicio' : 'Artículo'}
+              </Text>}
+              rules={[{ required: usarArticulo, message: 'Selecciona un artículo' }]}
+            >
+              <Select
+                placeholder="Selecciona el artículo"
+                style={{ height: '48px' }}
+                onChange={manejarCambioArticulo}
+                suffixIcon={<ShoppingCartOutlined />}
+                disabled={tipoSeleccionado === TipoTransaccion.GASTO && !tipoArticuloFiltro}
+              >
+                {articulosDisponibles.map(articulo => (
+                  <Option key={articulo.id} value={articulo.id}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        {obtenerIconoTipoArticulo(articulo.tipo)}
+                        <span style={{ marginLeft: '8px' }}>{articulo.nombre}</span>
+                      </div>
+                      <Text type="secondary">
+                        {new Intl.NumberFormat('es-AR', {
+                          style: 'currency',
+                          currency: 'ARS',
+                        }).format(articulo.precio)}
+                      </Text>
+                    </div>
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            {/* Información del artículo seleccionado */}
+            {articuloInfo && (
+              <Alert
+                message={`${articuloInfo.nombre} - ${new Intl.NumberFormat('es-AR', {
+                  style: 'currency',
+                  currency: 'ARS',
+                }).format(articuloInfo.precio)}`}
+                description={articuloInfo.descripcion}
+                type="info"
+                style={{ marginBottom: '16px', borderRadius: '6px' }}
+              />
+            )}
+          </>
+        )}
+
+        <Row gutter={16}>
+          {/* Monto */}
+          <Col xs={24} sm={16}>
+            <Form.Item
+              name="monto"
+              label={<Text strong style={{ fontSize: '16px' }}>Monto</Text>}
+              rules={[
+                { required: true, message: 'Ingresa el monto' },
+                { type: 'number', min: 0.01, message: 'El monto debe ser mayor a 0' },
+                { validator: validarSaldo },
+              ]}
+            >
+              <InputNumber
+                placeholder="0.00"
+                style={{ width: '100%', height: '48px' }}
+                prefix={<DollarOutlined />}
+                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
+                parser={(value) => value!.replace(/\$\s?|(\.*)/g, '')}
+                precision={2}
+              />
+            </Form.Item>
+          </Col>
 
           {/* Fecha */}
-          <Form.Item
-            name="fecha"
-            label={<Text strong style={{ fontSize: '16px' }}>Fecha</Text>}
-            rules={[{ required: true, message: 'Selecciona la fecha' }]}
-            style={{ width: '30%' }}
-          >
-            <DatePicker
-              placeholder="Fecha"
-              style={{ width: '100%', height: '48px' }}
-              suffixIcon={<CalendarOutlined />}
-              format="DD/MM/YYYY"
-            />
-          </Form.Item>
-        </Space.Compact>
+          <Col xs={24} sm={8}>
+            <Form.Item
+              name="fecha"
+              label={<Text strong style={{ fontSize: '16px' }}>Fecha</Text>}
+              rules={[{ required: true, message: 'Selecciona la fecha' }]}
+            >
+              <DatePicker
+                placeholder="Fecha"
+                style={{ width: '100%', height: '48px' }}
+                suffixIcon={<CalendarOutlined />}
+                format="DD/MM/YYYY"
+              />
+            </Form.Item>
+          </Col>
+        </Row>
 
         {/* Descripción */}
         <Form.Item

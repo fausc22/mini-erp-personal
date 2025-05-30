@@ -15,7 +15,8 @@ import {
   message,
   Row,
   Col,
-  Alert
+  Alert,
+  Switch
 } from 'antd';
 import {
   ShoppingCartOutlined,
@@ -27,6 +28,7 @@ import {
   BoxPlotOutlined,
   ToolOutlined,
   InfoCircleOutlined,
+  WalletOutlined,
 } from '@ant-design/icons';
 import { useApp } from '@/context/AppContext';
 import { 
@@ -59,15 +61,32 @@ const FormularioArticulo: React.FC<PropiedadesFormularioArticulo> = ({
   );
 
   // Filtrar categorías según el tipo seleccionado
-  const categoriasDisponibles = categorias.filter(categoria => 
-    categoria.activa && categoria.tipo === (tipoSeleccionado === TipoArticulo.PRODUCTO ? TipoCategoria.PRODUCTO : TipoCategoria.SERVICIO)
-  );
+  const categoriasDisponibles = categorias.filter(categoria => {
+    if (tipoSeleccionado === TipoArticulo.PRODUCTO) {
+      return categoria.activa && categoria.tipo === TipoCategoria.PRODUCTO;
+    } else if (tipoSeleccionado === TipoArticulo.SERVICIO) {
+      return categoria.activa && categoria.tipo === TipoCategoria.SERVICIO;
+    } else if (tipoSeleccionado === TipoArticulo.GASTO) {
+      return categoria.activa && categoria.tipo === TipoCategoria.GASTO;
+    }
+    return false;
+  });
 
-  // Unidades comunes
-  const unidadesComunes = [
-    'unidad', 'kg', 'gramo', 'litro', 'metro', 'cm', 'pack', 'caja', 'bolsa', 
-    'hora', 'día', 'mes', 'año', 'servicio', 'consulta', 'sesión'
-  ];
+  // Unidades comunes según el tipo
+  const obtenerUnidadesComunes = (tipo: TipoArticulo) => {
+    switch (tipo) {
+      case TipoArticulo.PRODUCTO:
+        return ['unidad', 'kg', 'gramo', 'litro', 'metro', 'cm', 'pack', 'caja', 'bolsa'];
+      case TipoArticulo.SERVICIO:
+        return ['hora', 'día', 'mes', 'año', 'servicio', 'consulta', 'sesión'];
+      case TipoArticulo.GASTO:
+        return ['unidad', 'mes', 'año', 'servicio'];
+      default:
+        return ['unidad'];
+    }
+  };
+
+  const unidadesComunes = obtenerUnidadesComunes(tipoSeleccionado);
 
   useEffect(() => {
     if (articulo) {
@@ -83,6 +102,8 @@ const FormularioArticulo: React.FC<PropiedadesFormularioArticulo> = ({
         categoriaId: articulo.categoriaId,
         unidad: articulo.unidad,
         codigoBarras: articulo.codigoBarras,
+        esRecurrente: articulo.esRecurrente || false,
+        frecuencia: articulo.frecuencia,
       });
       setTipoSeleccionado(articulo.tipo);
     } else {
@@ -93,6 +114,7 @@ const FormularioArticulo: React.FC<PropiedadesFormularioArticulo> = ({
         stock: 0,
         stockMinimo: 0,
         costo: 0,
+        esRecurrente: false,
       });
     }
   }, [articulo, form]);
@@ -100,23 +122,40 @@ const FormularioArticulo: React.FC<PropiedadesFormularioArticulo> = ({
   const manejarCambioTipo = (tipo: TipoArticulo) => {
     setTipoSeleccionado(tipo);
     
-    // Limpiar campos relacionados con stock si es servicio
+    // Ajustar campos según el tipo
     if (tipo === TipoArticulo.SERVICIO) {
       form.setFieldsValue({
         stock: 0,
         stockMinimo: 0,
         unidad: 'servicio',
+        codigoBarras: '',
+        esRecurrente: false,
+      });
+    } else if (tipo === TipoArticulo.GASTO) {
+      form.setFieldsValue({
+        stock: 0,
+        stockMinimo: 0,
+        unidad: 'unidad',
+        codigoBarras: '',
       });
     } else {
       form.setFieldsValue({
         unidad: 'unidad',
+        esRecurrente: false,
       });
     }
     
     // Limpiar categoría si no hay categorías disponibles para el nuevo tipo
-    const nuevasCategoriasDisponibles = categorias.filter(categoria => 
-      categoria.activa && categoria.tipo === (tipo === TipoArticulo.PRODUCTO ? TipoCategoria.PRODUCTO : TipoCategoria.SERVICIO)
-    );
+    const nuevasCategoriasDisponibles = categorias.filter(categoria => {
+      if (tipo === TipoArticulo.PRODUCTO) {
+        return categoria.activa && categoria.tipo === TipoCategoria.PRODUCTO;
+      } else if (tipo === TipoArticulo.SERVICIO) {
+        return categoria.activa && categoria.tipo === TipoCategoria.SERVICIO;
+      } else if (tipo === TipoArticulo.GASTO) {
+        return categoria.activa && categoria.tipo === TipoCategoria.GASTO;
+      }
+      return false;
+    });
     
     if (nuevasCategoriasDisponibles.length === 0) {
       form.setFieldValue('categoriaId', undefined);
@@ -127,7 +166,7 @@ const FormularioArticulo: React.FC<PropiedadesFormularioArticulo> = ({
     try {
       // Validar que hay categorías disponibles
       if (categoriasDisponibles.length === 0) {
-        message.error(`Primero debes crear una categoría para ${tipoSeleccionado.toLowerCase()}s`);
+        message.error(`Primero debes crear una categoría para ${getNombreTipo(tipoSeleccionado)}`);
         return;
       }
 
@@ -141,8 +180,8 @@ const FormularioArticulo: React.FC<PropiedadesFormularioArticulo> = ({
       if (exito) {
         message.success(
           articulo 
-            ? `${tipoSeleccionado === TipoArticulo.PRODUCTO ? 'Producto' : 'Servicio'} actualizado exitosamente` 
-            : `${tipoSeleccionado === TipoArticulo.PRODUCTO ? 'Producto' : 'Servicio'} creado exitosamente`
+            ? `${getNombreTipo(tipoSeleccionado)} actualizado exitosamente` 
+            : `${getNombreTipo(tipoSeleccionado)} creado exitosamente`
         );
         
         if (!articulo) {
@@ -150,10 +189,11 @@ const FormularioArticulo: React.FC<PropiedadesFormularioArticulo> = ({
           form.resetFields();
           form.setFieldsValue({
             tipo: tipoSeleccionado,
-            unidad: tipoSeleccionado === TipoArticulo.SERVICIO ? 'servicio' : 'unidad',
+            unidad: obtenerUnidadesComunes(tipoSeleccionado)[0],
             stock: 0,
             stockMinimo: 0,
             costo: 0,
+            esRecurrente: false,
           });
         }
       }
@@ -173,6 +213,24 @@ const FormularioArticulo: React.FC<PropiedadesFormularioArticulo> = ({
     return '0';
   };
 
+  const getNombreTipo = (tipo: TipoArticulo) => {
+    switch (tipo) {
+      case TipoArticulo.PRODUCTO: return 'Producto';
+      case TipoArticulo.SERVICIO: return 'Servicio';
+      case TipoArticulo.GASTO: return 'Gasto';
+      default: return 'Artículo';
+    }
+  };
+
+  const getIconoTipo = (tipo: TipoArticulo) => {
+    switch (tipo) {
+      case TipoArticulo.PRODUCTO: return <BoxPlotOutlined />;
+      case TipoArticulo.SERVICIO: return <ToolOutlined />;
+      case TipoArticulo.GASTO: return <WalletOutlined />;
+      default: return <ShoppingCartOutlined />;
+    }
+  };
+
   return (
     <Card
       style={{
@@ -184,10 +242,10 @@ const FormularioArticulo: React.FC<PropiedadesFormularioArticulo> = ({
     >
       <div style={{ marginBottom: '24px' }}>
         <Title level={3} style={{ margin: 0, textAlign: 'center' }}>
-          {articulo ? 'Editar Artículo' : 'Nuevo Artículo'}
+          {articulo ? `Editar ${getNombreTipo(articulo.tipo)}` : 'Nuevo Artículo'}
         </Title>
         <Text type="secondary" style={{ display: 'block', textAlign: 'center', fontSize: '16px' }}>
-          {articulo ? 'Modifica los datos del artículo' : 'Agrega un nuevo producto o servicio'}
+          {articulo ? `Modifica los datos del ${getNombreTipo(articulo.tipo).toLowerCase()}` : 'Agrega un nuevo producto, servicio o tipo de gasto'}
         </Text>
       </div>
 
@@ -201,8 +259,8 @@ const FormularioArticulo: React.FC<PropiedadesFormularioArticulo> = ({
         {/* Tipo de artículo */}
         <Form.Item
           name="tipo"
-          label={<Text strong style={{ fontSize: '16px' }}>Tipo de Artículo</Text>}
-          rules={[{ required: true, message: 'Selecciona el tipo de artículo' }]}
+          label={<Text strong style={{ fontSize: '16px' }}>Tipo</Text>}
+          rules={[{ required: true, message: 'Selecciona el tipo' }]}
         >
           <Radio.Group
             onChange={(e) => manejarCambioTipo(e.target.value)}
@@ -211,30 +269,44 @@ const FormularioArticulo: React.FC<PropiedadesFormularioArticulo> = ({
             <Radio.Button
               value={TipoArticulo.PRODUCTO}
               style={{
-                width: '50%',
+                width: '33.33%',
                 textAlign: 'center',
                 height: '48px',
                 lineHeight: '32px',
-                fontSize: '16px',
+                fontSize: '14px',
                 fontWeight: '600',
               }}
             >
-              <BoxPlotOutlined style={{ marginRight: '8px' }} />
+              <BoxPlotOutlined style={{ marginRight: '4px' }} />
               Producto
             </Radio.Button>
             <Radio.Button
               value={TipoArticulo.SERVICIO}
               style={{
-                width: '50%',
+                width: '33.33%',
                 textAlign: 'center',
                 height: '48px',
                 lineHeight: '32px',
-                fontSize: '16px',
+                fontSize: '14px',
                 fontWeight: '600',
               }}
             >
-              <ToolOutlined style={{ marginRight: '8px' }} />
+              <ToolOutlined style={{ marginRight: '4px' }} />
               Servicio
+            </Radio.Button>
+            <Radio.Button
+              value={TipoArticulo.GASTO}
+              style={{
+                width: '33.33%',
+                textAlign: 'center',
+                height: '48px',
+                lineHeight: '32px',
+                fontSize: '14px',
+                fontWeight: '600',
+              }}
+            >
+              <WalletOutlined style={{ marginRight: '4px' }} />
+              Gasto
             </Radio.Button>
           </Radio.Group>
         </Form.Item>
@@ -242,8 +314,8 @@ const FormularioArticulo: React.FC<PropiedadesFormularioArticulo> = ({
         {/* Alerta si no hay categorías */}
         {categoriasDisponibles.length === 0 && (
           <Alert
-            message={`No hay categorías para ${tipoSeleccionado.toLowerCase()}s`}
-            description={`Debes crear al menos una categoría para ${tipoSeleccionado.toLowerCase()}s antes de continuar.`}
+            message={`No hay categorías para ${getNombreTipo(tipoSeleccionado).toLowerCase()}s`}
+            description={`Debes crear al menos una categoría para ${getNombreTipo(tipoSeleccionado).toLowerCase()}s antes de continuar.`}
             type="warning"
             showIcon
             style={{ marginBottom: '16px' }}
@@ -255,15 +327,15 @@ const FormularioArticulo: React.FC<PropiedadesFormularioArticulo> = ({
           name="nombre"
           label={<Text strong style={{ fontSize: '16px' }}>Nombre</Text>}
           rules={[
-            { required: true, message: 'Ingresa el nombre del artículo' },
+            { required: true, message: 'Ingresa el nombre' },
             { min: 2, message: 'El nombre debe tener al menos 2 caracteres' },
             { max: 200, message: 'El nombre no puede exceder 200 caracteres' },
           ]}
         >
           <Input
-            placeholder={`Nombre del ${tipoSeleccionado.toLowerCase()}`}
+            placeholder={`Nombre del ${getNombreTipo(tipoSeleccionado).toLowerCase()}`}
             style={{ height: '48px' }}
-            prefix={<ShoppingCartOutlined />}
+            prefix={getIconoTipo(tipoSeleccionado)}
           />
         </Form.Item>
 
@@ -330,9 +402,11 @@ const FormularioArticulo: React.FC<PropiedadesFormularioArticulo> = ({
           <Col xs={24} sm={12}>
             <Form.Item
               name="precio"
-              label={<Text strong style={{ fontSize: '16px' }}>Precio de Venta</Text>}
+              label={<Text strong style={{ fontSize: '16px' }}>
+                {tipoSeleccionado === TipoArticulo.GASTO ? 'Monto' : 'Precio de Venta'}
+              </Text>}
               rules={[
-                { required: true, message: 'Ingresa el precio de venta' },
+                { required: true, message: 'Ingresa el precio/monto' },
                 { type: 'number', min: 0.01, message: 'El precio debe ser mayor a 0' },
               ]}
             >
@@ -347,43 +421,47 @@ const FormularioArticulo: React.FC<PropiedadesFormularioArticulo> = ({
             </Form.Item>
           </Col>
 
-          {/* Costo */}
-          <Col xs={24} sm={12}>
-            <Form.Item
-              name="costo"
-              label={<Text strong style={{ fontSize: '16px' }}>Costo (Opcional)</Text>}
-              rules={[{ type: 'number', min: 0, message: 'El costo no puede ser negativo' }]}
-            >
-              <InputNumber
-                placeholder="0.00"
-                style={{ width: '100%', height: '48px' }}
-                prefix={<DollarOutlined />}
-                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
-                parser={(value) => value!.replace(/\$\s?|(\.*)/g, '')}
-                precision={2}
-              />
-            </Form.Item>
-          </Col>
+          {/* Costo (solo para productos y servicios) */}
+          {tipoSeleccionado !== TipoArticulo.GASTO && (
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="costo"
+                label={<Text strong style={{ fontSize: '16px' }}>Costo (Opcional)</Text>}
+                rules={[{ type: 'number', min: 0, message: 'El costo no puede ser negativo' }]}
+              >
+                <InputNumber
+                  placeholder="0.00"
+                  style={{ width: '100%', height: '48px' }}
+                  prefix={<DollarOutlined />}
+                  formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
+                  parser={(value) => value!.replace(/\$\s?|(\.*)/g, '')}
+                  precision={2}
+                />
+              </Form.Item>
+            </Col>
+          )}
         </Row>
 
-        {/* Información de margen */}
-        <div style={{ 
-          background: '#f9f9f9', 
-          padding: '12px', 
-          borderRadius: '6px', 
-          marginBottom: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <InfoCircleOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
-            <Text>Margen de ganancia:</Text>
+        {/* Información de margen (solo para productos y servicios) */}
+        {tipoSeleccionado !== TipoArticulo.GASTO && (
+          <div style={{ 
+            background: '#f9f9f9', 
+            padding: '12px', 
+            borderRadius: '6px', 
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <InfoCircleOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
+              <Text>Margen de ganancia:</Text>
+            </div>
+            <Text strong style={{ color: '#52c41a' }}>
+              {calcularMargen()}%
+            </Text>
           </div>
-          <Text strong style={{ color: '#52c41a' }}>
-            {calcularMargen()}%
-          </Text>
-        </div>
+        )}
 
         {/* Campos específicos para productos */}
         {tipoSeleccionado === TipoArticulo.PRODUCTO && (
@@ -440,6 +518,46 @@ const FormularioArticulo: React.FC<PropiedadesFormularioArticulo> = ({
           </Form.Item>
         )}
 
+        {/* Campos específicos para gastos */}
+        {tipoSeleccionado === TipoArticulo.GASTO && (
+          <>
+            <Row gutter={16}>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="esRecurrente"
+                  label={<Text strong style={{ fontSize: '16px' }}>¿Es un gasto recurrente?</Text>}
+                  valuePropName="checked"
+                >
+                  <Switch />
+                </Form.Item>
+              </Col>
+              
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="frecuencia"
+                  label={<Text strong style={{ fontSize: '16px' }}>Frecuencia</Text>}
+                  rules={[
+                    {
+                      required: form.getFieldValue('esRecurrente'),
+                      message: 'Selecciona la frecuencia para gastos recurrentes'
+                    }
+                  ]}
+                >
+                  <Select
+                    placeholder="Selecciona frecuencia"
+                    style={{ height: '48px' }}
+                    disabled={!form.getFieldValue('esRecurrente')}
+                  >
+                    <Select.Option value="MENSUAL">Mensual</Select.Option>
+                    <Select.Option value="TRIMESTRAL">Trimestral</Select.Option>
+                    <Select.Option value="ANUAL">Anual</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+          </>
+        )}
+
         {/* Descripción */}
         <Form.Item
           name="descripcion"
@@ -447,7 +565,7 @@ const FormularioArticulo: React.FC<PropiedadesFormularioArticulo> = ({
           rules={[{ max: 1000, message: 'La descripción no puede exceder 1000 caracteres' }]}
         >
           <TextArea
-            placeholder={`Descripción detallada del ${tipoSeleccionado.toLowerCase()}...`}
+            placeholder={`Descripción detallada del ${getNombreTipo(tipoSeleccionado).toLowerCase()}...`}
             rows={4}
             style={{ fontSize: '16px' }}
           />

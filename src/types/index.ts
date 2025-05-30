@@ -15,12 +15,14 @@ export enum TipoTransaccion {
 
 export enum TipoArticulo {
   PRODUCTO = 'PRODUCTO',
-  SERVICIO = 'SERVICIO'
+  SERVICIO = 'SERVICIO',
+  GASTO = 'GASTO' // ✅ Nuevo tipo agregado
 }
 
 export enum TipoCategoria {
   PRODUCTO = 'PRODUCTO',
-  SERVICIO = 'SERVICIO'
+  SERVICIO = 'SERVICIO',
+  GASTO = 'GASTO' // ✅ Nuevo tipo agregado
 }
 
 export enum Moneda {
@@ -39,13 +41,13 @@ export interface EntidadBase {
 export interface Usuario extends EntidadBase {
   nombre: string;
   email: string;
-  password: string; // ✅ Cambiar de 'contraseña' a 'password'
+  password: string;
 }
 
 export interface CrearUsuarioInput {
   nombre: string;
   email: string;
-  password: string; // ✅ Cambiar aquí también
+  password: string;
 }
 
 export interface ActualizarUsuarioInput extends Partial<CrearUsuarioInput> {
@@ -88,9 +90,11 @@ export interface Transaccion extends EntidadBase {
   categoriaId: string;
   fecha: Date;
   notas?: string;
+  articuloId?: string; // ✅ Nuevo campo para vincular con productos/servicios/gastos
   usuario?: Usuario;
   cuenta?: Cuenta;
   categoria?: Categoria;
+  articulo?: Articulo; // ✅ Nueva relación
 }
 
 export interface CrearTransaccionInput {
@@ -101,13 +105,14 @@ export interface CrearTransaccionInput {
   categoriaId: string;
   fecha: Date;
   notas?: string;
+  articuloId?: string; // ✅ Nuevo campo opcional
 }
 
 export interface ActualizarTransaccionInput extends Partial<CrearTransaccionInput> {
   id: string;
 }
 
-// Interface de Artículo (Productos y Servicios)
+// Interface de Artículo (Productos, Servicios y Gastos)
 export interface Articulo extends EntidadBase {
   usuarioId: string;
   nombre: string;
@@ -121,6 +126,9 @@ export interface Articulo extends EntidadBase {
   codigoBarras?: string;
   activo: boolean;
   tipo: TipoArticulo;
+  // Campos específicos para gastos
+  esRecurrente?: boolean; // ✅ Para gastos recurrentes
+  frecuencia?: 'MENSUAL' | 'TRIMESTRAL' | 'ANUAL'; // ✅ Frecuencia de gastos recurrentes
   usuario?: Usuario;
   categoria?: Categoria;
 }
@@ -136,6 +144,8 @@ export interface CrearArticuloInput {
   unidad?: string;
   codigoBarras?: string;
   tipo: TipoArticulo;
+  esRecurrente?: boolean;
+  frecuencia?: 'MENSUAL' | 'TRIMESTRAL' | 'ANUAL';
 }
 
 export interface ActualizarArticuloInput extends Partial<CrearArticuloInput> {
@@ -246,6 +256,7 @@ export interface FiltrosTransaccion {
   montoMinimo?: number;
   montoMaximo?: number;
   moneda?: Moneda;
+  tipoArticulo?: TipoArticulo; // ✅ Nuevo filtro por tipo de artículo
 }
 
 export interface FiltrosArticulo {
@@ -256,7 +267,7 @@ export interface FiltrosArticulo {
   busqueda?: string;
 }
 
-// Context de la aplicación
+// Context de la aplicación - ✅ Actualizado con nuevas funciones
 export interface ContextoAppTipo {
   usuarioActual: Usuario | null;
   cuentas: Cuenta[];
@@ -269,8 +280,11 @@ export interface ContextoAppTipo {
   cerrarSesion: () => void;
   actualizarDatos: () => Promise<void>;
   crearCuenta: (datos: CrearCuentaInput) => Promise<Cuenta | null>;
+  actualizarCuenta: (id: string, datos: Partial<CrearCuentaInput>) => Promise<Cuenta | null>;
   crearTransaccion: (datos: CrearTransaccionInput) => Promise<Transaccion | null>;
+  actualizarTransaccion: (id: string, datos: Partial<CrearTransaccionInput>) => Promise<Transaccion | null>;
   crearArticulo: (datos: CrearArticuloInput) => Promise<Articulo | null>;
+  actualizarArticulo: (id: string, datos: Partial<CrearArticuloInput>) => Promise<Articulo | null>;
   crearCategoria: (datos: CrearCategoriaInput) => Promise<Categoria | null>;
 }
 

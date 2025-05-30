@@ -4,7 +4,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL")     // Se usa para queries comunes
+  directUrl = env("DIRECT_URL")      // Prisma usa esto para migraciones
 }
 
 model Usuario {
@@ -53,12 +54,14 @@ model Transaccion {
   categoriaId   String
   fecha         DateTime
   notas         String?
+  articuloId    String?          // ✅ Nuevo campo opcional
   creadaEn      DateTime         @default(now())
   actualizadaEn DateTime         @updatedAt
 
   usuario    Usuario    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   cuenta     Cuenta     @relation(fields: [cuentaId], references: [id], onDelete: Cascade)
   categoria  Categoria  @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
+  articulo   Articulo?  @relation(fields: [articuloId], references: [id], onDelete: SetNull) // ✅ Nueva relación
 
   @@map("transacciones")
 }
@@ -77,11 +80,15 @@ model Articulo {
   codigoBarras  String?
   activo        Boolean       @default(true)
   tipo          TipoArticulo  @default(PRODUCTO)
+  // ✅ Nuevos campos para gastos
+  esRecurrente  Boolean?      @default(false)
+  frecuencia    Frecuencia?
   creadoEn      DateTime      @default(now())
   actualizadoEn DateTime      @updatedAt
 
-  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  categoria Categoria @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
+  usuario       Usuario       @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  categoria     Categoria     @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
+  transacciones Transaccion[] // ✅ Nueva relación inversa
 
   @@unique([usuarioId, nombre])
   @@unique([usuarioId, codigoBarras])
@@ -136,14 +143,22 @@ enum TipoTransaccion {
 enum TipoArticulo {
   PRODUCTO
   SERVICIO
+  GASTO // ✅ Nuevo tipo agregado
 }
 
 enum TipoCategoria {
   PRODUCTO
   SERVICIO
+  GASTO // ✅ Nuevo tipo agregado
 }
 
 enum Moneda {
   ARS
   USD
+}
+
+enum Frecuencia { // ✅ Nuevo enum para gastos recurrentes
+  MENSUAL
+  TRIMESTRAL
+  ANUAL
 }

@@ -173,7 +173,8 @@ export function AppProvider({ children }: PropiedadesAppProvider) {
         dispatch({ tipo: 'ESTABLECER_USUARIO', payload: datos.usuario });
         // Guardar token en localStorage
         localStorage.setItem('token', datos.token);
-        await actualizarDatos();
+        // Cargar datos del usuario después de establecer la sesión
+        await cargarDatosCompletos();
         return true;
       } else {
         dispatch({ tipo: 'ESTABLECER_ERROR', payload: datos.error });
@@ -193,7 +194,7 @@ export function AppProvider({ children }: PropiedadesAppProvider) {
   };
 
   // Funciones para cargar datos
-  const cargarCuentas = async () => {
+  const cargarCuentas = async (): Promise<boolean> => {
     try {
       const respuesta = await fetch('/api/cuentas', {
         headers: {
@@ -204,15 +205,18 @@ export function AppProvider({ children }: PropiedadesAppProvider) {
       
       if (datos.exito) {
         dispatch({ tipo: 'ESTABLECER_CUENTAS', payload: datos.datos });
+        return true;
       } else {
-        dispatch({ tipo: 'ESTABLECER_ERROR', payload: datos.error });
+        console.error('Error cargando cuentas:', datos.error);
+        return false;
       }
     } catch (error) {
-      dispatch({ tipo: 'ESTABLECER_ERROR', payload: 'Error al cargar las cuentas' });
+      console.error('Error al cargar las cuentas:', error);
+      return false;
     }
   };
 
-  const cargarTransacciones = async () => {
+  const cargarTransacciones = async (): Promise<boolean> => {
     try {
       const respuesta = await fetch('/api/transacciones', {
         headers: {
@@ -223,15 +227,18 @@ export function AppProvider({ children }: PropiedadesAppProvider) {
       
       if (datos.exito) {
         dispatch({ tipo: 'ESTABLECER_TRANSACCIONES', payload: datos.datos });
+        return true;
       } else {
-        dispatch({ tipo: 'ESTABLECER_ERROR', payload: datos.error });
+        console.error('Error cargando transacciones:', datos.error);
+        return false;
       }
     } catch (error) {
-      dispatch({ tipo: 'ESTABLECER_ERROR', payload: 'Error al cargar las transacciones' });
+      console.error('Error al cargar las transacciones:', error);
+      return false;
     }
   };
 
-  const cargarArticulos = async () => {
+  const cargarArticulos = async (): Promise<boolean> => {
     try {
       const respuesta = await fetch('/api/articulos', {
         headers: {
@@ -242,15 +249,18 @@ export function AppProvider({ children }: PropiedadesAppProvider) {
       
       if (datos.exito) {
         dispatch({ tipo: 'ESTABLECER_ARTICULOS', payload: datos.datos });
+        return true;
       } else {
-        dispatch({ tipo: 'ESTABLECER_ERROR', payload: datos.error });
+        console.error('Error cargando artículos:', datos.error);
+        return false;
       }
     } catch (error) {
-      dispatch({ tipo: 'ESTABLECER_ERROR', payload: 'Error al cargar los artículos' });
+      console.error('Error al cargar los artículos:', error);
+      return false;
     }
   };
 
-  const cargarCategorias = async () => {
+  const cargarCategorias = async (): Promise<boolean> => {
     try {
       const respuesta = await fetch('/api/categorias', {
         headers: {
@@ -261,21 +271,39 @@ export function AppProvider({ children }: PropiedadesAppProvider) {
       
       if (datos.exito) {
         dispatch({ tipo: 'ESTABLECER_CATEGORIAS', payload: datos.datos });
+        return true;
+      } else {
+        console.error('Error cargando categorías:', datos.error);
+        return false;
       }
     } catch (error) {
       console.error('Error al cargar las categorías:', error);
+      return false;
+    }
+  };
+
+  const cargarDatosCompletos = async () => {
+    dispatch({ tipo: 'ESTABLECER_CARGANDO', payload: true });
+    
+    try {
+      // Cargar todos los datos en paralelo
+      await Promise.all([
+        cargarCuentas(),
+        cargarTransacciones(),
+        cargarArticulos(),
+        cargarCategorias(),
+      ]);
+    } catch (error) {
+      console.error('Error cargando datos completos:', error);
+      dispatch({ tipo: 'ESTABLECER_ERROR', payload: 'Error al cargar los datos' });
+    } finally {
+      dispatch({ tipo: 'ESTABLECER_CARGANDO', payload: false });
     }
   };
 
   const actualizarDatos = async () => {
     if (!estado.usuarioActual) return;
-    
-    await Promise.all([
-      cargarCuentas(),
-      cargarTransacciones(),
-      cargarArticulos(),
-      cargarCategorias(),
-    ]);
+    await cargarDatosCompletos();
   };
 
   // Operaciones CRUD
@@ -301,6 +329,32 @@ export function AppProvider({ children }: PropiedadesAppProvider) {
       }
     } catch (error) {
       dispatch({ tipo: 'ESTABLECER_ERROR', payload: 'Error al crear la cuenta' });
+      return null;
+    }
+  };
+
+  const actualizarCuenta = async (id: string, datosCuenta: Partial<CrearCuentaInput>): Promise<Cuenta | null> => {
+    try {
+      const respuesta = await fetch(`/api/cuentas/${id}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify(datosCuenta),
+      });
+      
+      const datos = await respuesta.json();
+      
+      if (datos.exito) {
+        dispatch({ tipo: 'ACTUALIZAR_CUENTA', payload: datos.datos });
+        return datos.datos;
+      } else {
+        dispatch({ tipo: 'ESTABLECER_ERROR', payload: datos.error });
+        return null;
+      }
+    } catch (error) {
+      dispatch({ tipo: 'ESTABLECER_ERROR', payload: 'Error al actualizar la cuenta' });
       return null;
     }
   };
@@ -333,6 +387,34 @@ export function AppProvider({ children }: PropiedadesAppProvider) {
     }
   };
 
+  const actualizarTransaccion = async (id: string, datosTransaccion: Partial<CrearTransaccionInput>): Promise<Transaccion | null> => {
+    try {
+      const respuesta = await fetch(`/api/transacciones/${id}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify(datosTransaccion),
+      });
+      
+      const datos = await respuesta.json();
+      
+      if (datos.exito) {
+        dispatch({ tipo: 'ACTUALIZAR_TRANSACCION', payload: datos.datos });
+        // Actualizar saldo de la cuenta
+        await cargarCuentas();
+        return datos.datos;
+      } else {
+        dispatch({ tipo: 'ESTABLECER_ERROR', payload: datos.error });
+        return null;
+      }
+    } catch (error) {
+      dispatch({ tipo: 'ESTABLECER_ERROR', payload: 'Error al actualizar la transacción' });
+      return null;
+    }
+  };
+
   const crearArticulo = async (datosArticulo: CrearArticuloInput): Promise<Articulo | null> => {
     try {
       const respuesta = await fetch('/api/articulos', {
@@ -355,6 +437,32 @@ export function AppProvider({ children }: PropiedadesAppProvider) {
       }
     } catch (error) {
       dispatch({ tipo: 'ESTABLECER_ERROR', payload: 'Error al crear el artículo' });
+      return null;
+    }
+  };
+
+  const actualizarArticulo = async (id: string, datosArticulo: Partial<CrearArticuloInput>): Promise<Articulo | null> => {
+    try {
+      const respuesta = await fetch(`/api/articulos/${id}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify(datosArticulo),
+      });
+      
+      const datos = await respuesta.json();
+      
+      if (datos.exito) {
+        dispatch({ tipo: 'ACTUALIZAR_ARTICULO', payload: datos.datos });
+        return datos.datos;
+      } else {
+        dispatch({ tipo: 'ESTABLECER_ERROR', payload: datos.error });
+        return null;
+      }
+    } catch (error) {
+      dispatch({ tipo: 'ESTABLECER_ERROR', payload: 'Error al actualizar el artículo' });
       return null;
     }
   };
@@ -391,6 +499,8 @@ export function AppProvider({ children }: PropiedadesAppProvider) {
       const token = localStorage.getItem('token');
       if (token) {
         try {
+          dispatch({ tipo: 'ESTABLECER_CARGANDO', payload: true });
+          
           const respuesta = await fetch('/api/auth/verificar', {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -400,13 +510,21 @@ export function AppProvider({ children }: PropiedadesAppProvider) {
           
           if (datos.exito) {
             dispatch({ tipo: 'ESTABLECER_USUARIO', payload: datos.usuario });
-            await actualizarDatos();
+            // Cargar datos después de verificar el usuario
+            await cargarDatosCompletos();
           } else {
             localStorage.removeItem('token');
+            dispatch({ tipo: 'LIMPIAR_DATOS', payload: null });
           }
         } catch (error) {
+          console.error('Error verificando token:', error);
           localStorage.removeItem('token');
+          dispatch({ tipo: 'LIMPIAR_DATOS', payload: null });
+        } finally {
+          dispatch({ tipo: 'ESTABLECER_CARGANDO', payload: false });
         }
+      } else {
+        dispatch({ tipo: 'ESTABLECER_CARGANDO', payload: false });
       }
     };
 
@@ -419,8 +537,11 @@ export function AppProvider({ children }: PropiedadesAppProvider) {
     cerrarSesion,
     actualizarDatos,
     crearCuenta,
+    actualizarCuenta,
     crearTransaccion,
+    actualizarTransaccion,
     crearArticulo,
+    actualizarArticulo,
     crearCategoria,
   };
 

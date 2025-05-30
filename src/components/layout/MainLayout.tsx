@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Button, Avatar, Dropdown, Space, Typography, Badge } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -30,14 +30,69 @@ interface PropiedadesLayoutPrincipal {
 
 const LayoutPrincipal: React.FC<PropiedadesLayoutPrincipal> = ({ children }) => {
   const [colapsado, setColapsado] = useState(false);
+  const [esMobile, setEsMobile] = useState(false);
+  const [submenuAbiertos, setSubmenuAbiertos] = useState<string[]>([]);
   const router = useRouter();
   const pathname = usePathname();
   const { usuarioActual, cerrarSesion, articulos } = useApp();
 
-  // Calcular artículos con stock bajo
+  // Detectar si es móvil
+  useEffect(() => {
+    const detectarMobile = () => {
+      const isMobile = window.innerWidth <= 768;
+      setEsMobile(isMobile);
+      
+      if (isMobile) {
+        // En móviles, empezar con submenús cerrados
+        setSubmenuAbiertos([]);
+        setColapsado(true);
+      } else {
+        // En desktop, mantener submenús abiertos por defecto
+        setSubmenuAbiertos(['transacciones', 'inventario']);
+      }
+    };
+
+    detectarMobile();
+    window.addEventListener('resize', detectarMobile);
+    
+    return () => window.removeEventListener('resize', detectarMobile);
+  }, []);
+
+  // Cerrar menú en móviles al navegar
+  useEffect(() => {
+    if (esMobile) {
+      setColapsado(true);
+      setSubmenuAbiertos([]);
+    }
+  }, [pathname, esMobile]);
+
+  // Calcular artículos con stock bajo (solo productos)
   const articulosStockBajo = articulos.filter(articulo => 
-    articulo.activo && articulo.stock <= (articulo.stockMinimo || 0)
+    articulo.activo && 
+    articulo.tipo === 'PRODUCTO' && // ✅ Solo productos
+    articulo.stock <= (articulo.stockMinimo || 0)
   ).length;
+
+  // Manejar apertura/cierre de submenús
+  const manejarSubmenu = (openKeys: string[]) => {
+    if (esMobile) {
+      // En móviles, solo permitir un submenú abierto a la vez
+      const ultimaClave = openKeys[openKeys.length - 1];
+      setSubmenuAbiertos(ultimaClave ? [ultimaClave] : []);
+    } else {
+      // En desktop, permitir múltiples submenús abiertos
+      setSubmenuAbiertos(openKeys);
+    }
+  };
+
+  // Manejar click en items del menú
+  const manejarClickMenu = ({ key }: { key: string }) => {
+    // Si es un ítem que navega, cerrar el menú en móviles
+    if (esMobile && !key.includes('submenu')) {
+      setColapsado(true);
+      setSubmenuAbiertos([]);
+    }
+  };
 
   // Configuración de elementos del menú
   const elementosMenu: MenuProps['items'] = [
@@ -139,6 +194,14 @@ const LayoutPrincipal: React.FC<PropiedadesLayoutPrincipal> = ({ children }) => 
     }
   };
 
+  // Manejar overlay para cerrar menú en móviles
+  const manejarOverlay = () => {
+    if (esMobile && !colapsado) {
+      setColapsado(true);
+      setSubmenuAbiertos([]);
+    }
+  };
+
   // Si no hay usuario autenticado, no mostrar el layout
   if (!usuarioActual) {
     return <>{children}</>;
@@ -146,20 +209,38 @@ const LayoutPrincipal: React.FC<PropiedadesLayoutPrincipal> = ({ children }) => 
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
+      {/* Overlay para móviles */}
+      {esMobile && !colapsado && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+            zIndex: 999,
+          }}
+          onClick={manejarOverlay}
+        />
+      )}
+
       {/* Barra lateral */}
       <Sider
         trigger={null}
         collapsible
         collapsed={colapsado}
-        breakpoint="lg"
-        collapsedWidth="0"
+        collapsedWidth={esMobile ? 0 : 80}
         width={280}
         style={{
+          position: esMobile ? 'fixed' : 'relative',
+          height: '100vh',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          zIndex: 1000,
           background: '#fff',
           boxShadow: '2px 0 8px rgba(0,0,0,0.1)',
-        }}
-        onBreakpoint={(roto) => {
-          setColapsado(roto);
         }}
       >
         {/* Logo */}
@@ -171,8 +252,8 @@ const LayoutPrincipal: React.FC<PropiedadesLayoutPrincipal> = ({ children }) => 
           borderBottom: '1px solid #f0f0f0',
           margin: '0 16px',
         }}>
-          <Text strong style={{ fontSize: colapsado ? '16px' : '18px', color: '#1890ff' }}>
-            {colapsado ? 'ERP' : 'Mi ERP Personal'}
+          <Text strong style={{ fontSize: '18px', color: '#1890ff' }}>
+            Mi ERP Personal
           </Text>
         </div>
 
@@ -180,7 +261,9 @@ const LayoutPrincipal: React.FC<PropiedadesLayoutPrincipal> = ({ children }) => 
         <Menu
           mode="inline"
           selectedKeys={[pathname]}
-          defaultOpenKeys={['transacciones', 'inventario']}
+          openKeys={submenuAbiertos}
+          onOpenChange={manejarSubmenu}
+          onClick={manejarClickMenu}
           items={elementosMenu}
           style={{
             border: 'none',
@@ -191,7 +274,7 @@ const LayoutPrincipal: React.FC<PropiedadesLayoutPrincipal> = ({ children }) => 
       </Sider>
 
       {/* Layout principal */}
-      <Layout>
+      <Layout style={{ marginLeft: esMobile ? 0 : (colapsado ? 80 : 280) }}>
         {/* Encabezado */}
         <Header
           style={{
@@ -201,6 +284,9 @@ const LayoutPrincipal: React.FC<PropiedadesLayoutPrincipal> = ({ children }) => 
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            position: 'sticky',
+            top: 0,
+            zIndex: 100,
           }}
         >
           {/* Botón de menú */}
@@ -213,7 +299,6 @@ const LayoutPrincipal: React.FC<PropiedadesLayoutPrincipal> = ({ children }) => 
               width: 48,
               height: 48,
             }}
-            className="lg:hidden"
           />
 
           {/* Sección del usuario */}
@@ -221,7 +306,7 @@ const LayoutPrincipal: React.FC<PropiedadesLayoutPrincipal> = ({ children }) => 
             {articulosStockBajo > 0 && (
               <Badge 
                 count={articulosStockBajo} 
-                title={`${articulosStockBajo} artículo(s) con stock bajo`}
+                title={`${articulosStockBajo} producto(s) con stock bajo`}
               >
                 <Button 
                   type="text" 
@@ -229,14 +314,16 @@ const LayoutPrincipal: React.FC<PropiedadesLayoutPrincipal> = ({ children }) => 
                   onClick={() => router.push('/articulos?stockBajo=true')}
                   style={{ color: '#ff4d4f' }}
                 >
-                  Stock Bajo
+                  {!esMobile && 'Stock Bajo'}
                 </Button>
               </Badge>
             )}
             
-            <Text style={{ fontSize: '16px' }}>
-              Bienvenido, <strong>{usuarioActual.nombre}</strong>
-            </Text>
+            {!esMobile && (
+              <Text style={{ fontSize: '16px' }}>
+                Bienvenido, <strong>{usuarioActual.nombre}</strong>
+              </Text>
+            )}
             
             <Dropdown
               menu={{
@@ -282,12 +369,13 @@ const LayoutPrincipal: React.FC<PropiedadesLayoutPrincipal> = ({ children }) => 
 
       {/* Estilos personalizados */}
       <style jsx global>{`
-        /* Aumentar tamaños de fuente para mejor legibilidad */
+        /* Mejorar interacción táctil */
         .ant-menu-item {
           height: 48px !important;
           line-height: 48px !important;
           margin: 4px 0 !important;
           border-radius: 6px !important;
+          font-size: 16px !important;
         }
         
         .ant-menu-submenu-title {
@@ -295,26 +383,20 @@ const LayoutPrincipal: React.FC<PropiedadesLayoutPrincipal> = ({ children }) => 
           line-height: 48px !important;
           margin: 4px 0 !important;
           border-radius: 6px !important;
-        }
-
-        /* Botones más grandes para dispositivos táctiles */
-        .ant-btn {
-          min-height: 44px !important;
           font-size: 16px !important;
-          border-radius: 6px !important;
         }
 
-        .ant-btn-lg {
-          min-height: 48px !important;
-          font-size: 18px !important;
+        .ant-menu-submenu .ant-menu-item {
+          margin-left: 0 !important;
+          padding-left: 24px !important;
         }
 
-        /* Mejor contraste para texto */
-        .ant-typography {
-          color: #262626 !important;
+        /* Transiciones suaves */
+        .ant-layout-sider {
+          transition: all 0.3s ease !important;
         }
 
-        /* Ajustes responsivos */
+        /* Estilos específicos para móviles */
         @media (max-width: 768px) {
           .ant-layout-content {
             margin: 16px !important;
@@ -323,58 +405,14 @@ const LayoutPrincipal: React.FC<PropiedadesLayoutPrincipal> = ({ children }) => 
 
           .ant-menu-item, .ant-menu-submenu-title {
             font-size: 18px !important;
+            height: 52px !important;
+            line-height: 52px !important;
           }
 
           .ant-btn {
-            font-size: 18px !important;
+            min-height: 48px !important;
+            font-size: 16px !important;
           }
-        }
-
-        /* Alto contraste para mejor visibilidad */
-        .ant-menu-item:hover,
-        .ant-menu-submenu-title:hover {
-          background-color: #e6f7ff !important;
-          color: #1890ff !important;
-        }
-
-        .ant-menu-item-selected {
-          background-color: #bae7ff !important;
-          color: #0050b3 !important;
-          font-weight: 600 !important;
-        }
-
-        /* Asegurar que los objetivos táctiles sean de al menos 44px */
-        .ant-btn,
-        .ant-input,
-        .ant-select-selector,
-        .ant-picker {
-          min-height: 44px !important;
-          font-size: 16px !important;
-        }
-
-        /* Mejorar visibilidad de badges */
-        .ant-badge-count {
-          font-size: 12px !important;
-          min-width: 20px !important;
-          height: 20px !important;
-          line-height: 20px !important;
-        }
-
-        /* Espaciado mejorado para menús */
-        .ant-menu-submenu-inline > .ant-menu {
-          margin-left: 16px !important;
-        }
-
-        .ant-menu-submenu .ant-menu-item {
-          margin-left: 0 !important;
-          padding-left: 24px !important;
-        }
-
-        /* Mejoras para dropdowns */
-        .ant-dropdown-menu-item {
-          min-height: 40px !important;
-          padding: 8px 16px !important;
-          font-size: 16px !important;
         }
       `}</style>
     </Layout>

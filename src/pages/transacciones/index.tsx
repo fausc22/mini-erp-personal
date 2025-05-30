@@ -14,7 +14,8 @@ import {
   Col,
   Statistic,
   Modal,
-  message
+  message,
+  Badge
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -24,10 +25,14 @@ import {
   EditOutlined,
   DeleteOutlined,
   MoreOutlined,
-  
+  DollarOutlined,
+  BoxPlotOutlined,
+  ToolOutlined,
+  WalletOutlined,
+  ShoppingCartOutlined,
 } from '@ant-design/icons';
 import { useApp } from '@/context/AppContext';
-import { Transaccion, TipoTransaccion, CrearTransaccionInput } from '@/types';
+import { Transaccion, TipoTransaccion, CrearTransaccionInput, TipoArticulo } from '@/types';
 import FormularioTransaccion from '@/components/forms/FormularioTransaccion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -37,13 +42,22 @@ const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 
 const PaginaTransacciones: React.FC = () => {
-  const { transacciones, cuentas, categorias, crearTransaccion, cargando } = useApp();
+  const { 
+    transacciones, 
+    cuentas, 
+    categorias, 
+    articulos,
+    crearTransaccion, 
+    actualizarTransaccion,
+    cargando 
+  } = useApp();
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [transaccionEditando, setTransaccionEditando] = useState<Transaccion | undefined>();
   const [filtroTexto, setFiltroTexto] = useState('');
   const [filtroTipo, setFiltroTipo] = useState<TipoTransaccion | undefined>();
   const [filtroCuenta, setFiltroCuenta] = useState<string | undefined>();
   const [filtroCategoria, setFiltroCategoria] = useState<string | undefined>();
+  const [filtroTipoArticulo, setFiltroTipoArticulo] = useState<TipoArticulo | undefined>();
 
   // Función para formatear moneda
   const formatearMoneda = (monto: number, moneda: string = 'ARS') => {
@@ -51,6 +65,12 @@ const PaginaTransacciones: React.FC = () => {
       style: 'currency',
       currency: moneda,
     }).format(monto);
+  };
+
+  // Obtener información del artículo
+  const obtenerArticuloInfo = (articuloId?: string) => {
+    if (!articuloId) return null;
+    return articulos.find(a => a.id === articuloId);
   };
 
   // Filtrar transacciones
@@ -62,8 +82,17 @@ const PaginaTransacciones: React.FC = () => {
     const coincideTipo = !filtroTipo || transaccion.tipo === filtroTipo;
     const coincideCuenta = !filtroCuenta || transaccion.cuentaId === filtroCuenta;
     const coincideCategoria = !filtroCategoria || transaccion.categoriaId === filtroCategoria;
+    
+    // Filtro por tipo de artículo
+    let coincideTipoArticulo = true;
+    if (filtroTipoArticulo && transaccion.articuloId) {
+      const articulo = obtenerArticuloInfo(transaccion.articuloId);
+      coincideTipoArticulo = articulo?.tipo === filtroTipoArticulo;
+    } else if (filtroTipoArticulo && !transaccion.articuloId) {
+      coincideTipoArticulo = false;
+    }
 
-    return coincideTexto && coincideTipo && coincideCuenta && coincideCategoria;
+    return coincideTexto && coincideTipo && coincideCuenta && coincideCategoria && coincideTipoArticulo;
   });
 
   // Calcular estadísticas
@@ -74,6 +103,23 @@ const PaginaTransacciones: React.FC = () => {
   const totalGastos = transaccionesFiltradas
     .filter(t => t.tipo === TipoTransaccion.GASTO)
     .reduce((sum, t) => sum + t.monto, 0);
+
+  // Estadísticas por tipo de artículo
+  const transaccionesPorTipoArticulo = {
+    productos: transaccionesFiltradas.filter(t => {
+      const articulo = obtenerArticuloInfo(t.articuloId);
+      return articulo?.tipo === TipoArticulo.PRODUCTO;
+    }).length,
+    servicios: transaccionesFiltradas.filter(t => {
+      const articulo = obtenerArticuloInfo(t.articuloId);
+      return articulo?.tipo === TipoArticulo.SERVICIO;
+    }).length,
+    gastos: transaccionesFiltradas.filter(t => {
+      const articulo = obtenerArticuloInfo(t.articuloId);
+      return articulo?.tipo === TipoArticulo.GASTO;
+    }).length,
+    sinArticulo: transaccionesFiltradas.filter(t => !t.articuloId).length,
+  };
 
   const manejarNuevaTransaccion = () => {
     setTransaccionEditando(undefined);
@@ -88,10 +134,15 @@ const PaginaTransacciones: React.FC = () => {
   const manejarGuardarTransaccion = async (datos: CrearTransaccionInput): Promise<boolean> => {
     try {
       if (transaccionEditando) {
-        // TODO: Implementar actualización
-        message.info('Funcionalidad de edición pendiente');
-        return false;
+        // Actualizar transacción existente
+        const resultado = await actualizarTransaccion(transaccionEditando.id, datos);
+        if (resultado) {
+          setMostrarFormulario(false);
+          setTransaccionEditando(undefined);
+          return true;
+        }
       } else {
+        // Crear nueva transacción
         const resultado = await crearTransaccion(datos);
         if (resultado) {
           setMostrarFormulario(false);
@@ -124,6 +175,24 @@ const PaginaTransacciones: React.FC = () => {
     });
   };
 
+  const obtenerIconoTipoArticulo = (tipo: TipoArticulo) => {
+    switch (tipo) {
+      case TipoArticulo.PRODUCTO: return <BoxPlotOutlined style={{ color: '#1890ff' }} />;
+      case TipoArticulo.SERVICIO: return <ToolOutlined style={{ color: '#52c41a' }} />;
+      case TipoArticulo.GASTO: return <WalletOutlined style={{ color: '#fa8c16' }} />;
+      default: return null;
+    }
+  };
+
+  const obtenerNombreTipoArticulo = (tipo: TipoArticulo) => {
+    switch (tipo) {
+      case TipoArticulo.PRODUCTO: return 'Producto';
+      case TipoArticulo.SERVICIO: return 'Servicio';
+      case TipoArticulo.GASTO: return 'Gasto';
+      default: return '';
+    }
+  };
+
   // Configuración de columnas de la tabla
   const columnas: ColumnsType<Transaccion> = [
     {
@@ -146,7 +215,6 @@ const PaginaTransacciones: React.FC = () => {
       render: (tipo: TipoTransaccion) => (
         <Tag 
           color={tipo === TipoTransaccion.INGRESO ? 'green' : 'red'}
-          
         >
           {tipo === TipoTransaccion.INGRESO ? 'Ingreso' : 'Gasto'}
         </Tag>
@@ -162,16 +230,43 @@ const PaginaTransacciones: React.FC = () => {
       dataIndex: 'descripcion',
       key: 'descripcion',
       ellipsis: true,
-      render: (descripcion: string, record: Transaccion) => (
-        <div>
-          <Text strong style={{ fontSize: '14px' }}>{descripcion}</Text>
-          {record.notas && (
-            <Text type="secondary" style={{ display: 'block', fontSize: '12px' }}>
-              {record.notas}
-            </Text>
-          )}
-        </div>
-      ),
+      render: (descripcion: string, record: Transaccion) => {
+        const articuloInfo = obtenerArticuloInfo(record.articuloId);
+        
+        return (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+              {articuloInfo && obtenerIconoTipoArticulo(articuloInfo.tipo)}
+              <Text strong style={{ 
+                fontSize: '14px',
+                marginLeft: articuloInfo ? '8px' : '0'
+              }}>
+                {descripcion}
+              </Text>
+            </div>
+            
+            {articuloInfo && (
+              <div style={{ marginBottom: '4px' }}>
+                <Tag 
+                  size="small" 
+                  color={
+                    articuloInfo.tipo === TipoArticulo.PRODUCTO ? 'blue' :
+                    articuloInfo.tipo === TipoArticulo.SERVICIO ? 'green' : 'orange'
+                  }
+                >
+                  {obtenerNombreTipoArticulo(articuloInfo.tipo)}: {articuloInfo.nombre}
+                </Tag>
+              </div>
+            )}
+            
+            {record.notas && (
+              <Text type="secondary" style={{ display: 'block', fontSize: '12px' }}>
+                {record.notas}
+              </Text>
+            )}
+          </div>
+        );
+      },
     },
     {
       title: 'Categoría',
@@ -276,7 +371,14 @@ const PaginaTransacciones: React.FC = () => {
 
       <div style={{ padding: '0' }}>
         {/* Encabezado */}
-        <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ 
+          marginBottom: '24px', 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '16px'
+        }}>
           <div>
             <Title level={2} style={{ margin: 0 }}>
               Transacciones
@@ -295,7 +397,7 @@ const PaginaTransacciones: React.FC = () => {
           </Button>
         </div>
 
-        {/* Estadísticas */}
+        {/* Estadísticas principales */}
         <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
           <Col xs={24} sm={8}>
             <Card>
@@ -303,7 +405,7 @@ const PaginaTransacciones: React.FC = () => {
                 title="Total Ingresos"
                 value={totalIngresos}
                 precision={2}
-                
+                prefix={<DollarOutlined style={{ color: '#52c41a' }} />}
                 formatter={(value) => formatearMoneda(Number(value))}
                 valueStyle={{ color: '#52c41a' }}
               />
@@ -315,7 +417,7 @@ const PaginaTransacciones: React.FC = () => {
                 title="Total Gastos"
                 value={totalGastos}
                 precision={2}
-                
+                prefix={<DollarOutlined style={{ color: '#ff4d4f' }} />}
                 formatter={(value) => formatearMoneda(Number(value))}
                 valueStyle={{ color: '#ff4d4f' }}
               />
@@ -327,8 +429,53 @@ const PaginaTransacciones: React.FC = () => {
                 title="Balance"
                 value={totalIngresos - totalGastos}
                 precision={2}
+                prefix={<DollarOutlined />}
                 formatter={(value) => formatearMoneda(Number(value))}
                 valueStyle={{ color: totalIngresos - totalGastos >= 0 ? '#52c41a' : '#ff4d4f' }}
+              />
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Estadísticas por tipo de artículo */}
+        <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+          <Col xs={12} sm={6}>
+            <Card>
+              <Statistic
+                title="Productos"
+                value={transaccionesPorTipoArticulo.productos}
+                prefix={<BoxPlotOutlined style={{ color: '#1890ff' }} />}
+                valueStyle={{ color: '#1890ff' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Card>
+              <Statistic
+                title="Servicios"
+                value={transaccionesPorTipoArticulo.servicios}
+                prefix={<ToolOutlined style={{ color: '#52c41a' }} />}
+                valueStyle={{ color: '#52c41a' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Card>
+              <Statistic
+                title="Gastos"
+                value={transaccionesPorTipoArticulo.gastos}
+                prefix={<WalletOutlined style={{ color: '#fa8c16' }} />}
+                valueStyle={{ color: '#fa8c16' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Card>
+              <Statistic
+                title="Sin Vincular"
+                value={transaccionesPorTipoArticulo.sinArticulo}
+                prefix={<ShoppingCartOutlined style={{ color: '#8c8c8c' }} />}
+                valueStyle={{ color: '#8c8c8c' }}
               />
             </Card>
           </Col>
@@ -346,7 +493,7 @@ const PaginaTransacciones: React.FC = () => {
                 allowClear
               />
             </Col>
-            <Col xs={24} sm={12} md={6}>
+            <Col xs={24} sm={12} md={4}>
               <Select
                 placeholder="Tipo"
                 value={filtroTipo}
@@ -358,7 +505,35 @@ const PaginaTransacciones: React.FC = () => {
                 <Select.Option value={TipoTransaccion.GASTO}>Gastos</Select.Option>
               </Select>
             </Col>
-            <Col xs={24} sm={12} md={6}>
+            <Col xs={24} sm={12} md={4}>
+              <Select
+                placeholder="Tipo Artículo"
+                value={filtroTipoArticulo}
+                onChange={setFiltroTipoArticulo}
+                allowClear
+                style={{ width: '100%' }}
+              >
+                <Select.Option value={TipoArticulo.PRODUCTO}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <BoxPlotOutlined style={{ marginRight: '8px' }} />
+                    Productos
+                  </div>
+                </Select.Option>
+                <Select.Option value={TipoArticulo.SERVICIO}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <ToolOutlined style={{ marginRight: '8px' }} />
+                    Servicios
+                  </div>
+                </Select.Option>
+                <Select.Option value={TipoArticulo.GASTO}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <WalletOutlined style={{ marginRight: '8px' }} />
+                    Gastos
+                  </div>
+                </Select.Option>
+              </Select>
+            </Col>
+            <Col xs={24} sm={12} md={5}>
               <Select
                 placeholder="Cuenta"
                 value={filtroCuenta}
@@ -373,7 +548,7 @@ const PaginaTransacciones: React.FC = () => {
                 ))}
               </Select>
             </Col>
-            <Col xs={24} sm={12} md={6}>
+            <Col xs={24} sm={12} md={5}>
               <Select
                 placeholder="Categoría"
                 value={filtroCategoria}
@@ -405,7 +580,7 @@ const PaginaTransacciones: React.FC = () => {
               showTotal: (total, range) => 
                 `${range[0]}-${range[1]} de ${total} transacciones`,
             }}
-            scroll={{ x: 800 }}
+            scroll={{ x: 1000 }}
           />
         </Card>
 

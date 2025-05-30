@@ -29,6 +29,7 @@ import {
   ToolOutlined,
   BoxPlotOutlined,
   ExclamationCircleOutlined,
+  WalletOutlined,
 } from '@ant-design/icons';
 import { useApp } from '@/context/AppContext';
 import { Articulo, TipoArticulo, CrearArticuloInput } from '@/types';
@@ -39,7 +40,7 @@ import Head from 'next/head';
 const { Title, Text } = Typography;
 
 const PaginaArticulos: React.FC = () => {
-  const { articulos, categorias, crearArticulo, cargando } = useApp();
+  const { articulos, categorias, crearArticulo, actualizarArticulo, cargando } = useApp();
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [articuloEditando, setArticuloEditando] = useState<Articulo | undefined>();
   const [filtroTexto, setFiltroTexto] = useState('');
@@ -72,7 +73,12 @@ const PaginaArticulos: React.FC = () => {
     
     const coincideTipo = !filtroTipo || articulo.tipo === filtroTipo;
     const coincideCategoria = !filtroCategoria || articulo.categoriaId === filtroCategoria;
-    const coincideStock = !soloStockBajo || (articulo.stock <= (articulo.stockMinimo || 0));
+    
+    // Solo aplicar filtro de stock bajo a productos
+    const coincideStock = !soloStockBajo || (
+      articulo.tipo === TipoArticulo.PRODUCTO && 
+      articulo.stock <= (articulo.stockMinimo || 0)
+    );
 
     return coincideTexto && coincideTipo && coincideCategoria && coincideStock;
   });
@@ -80,7 +86,8 @@ const PaginaArticulos: React.FC = () => {
   // Calcular estadísticas
   const productos = articulosFiltrados.filter(a => a.tipo === TipoArticulo.PRODUCTO);
   const servicios = articulosFiltrados.filter(a => a.tipo === TipoArticulo.SERVICIO);
-  const stockBajo = articulosFiltrados.filter(a => a.activo && a.stock <= (a.stockMinimo || 0));
+  const gastos = articulosFiltrados.filter(a => a.tipo === TipoArticulo.GASTO);
+  const stockBajo = productos.filter(a => a.activo && a.stock <= (a.stockMinimo || 0));
 
   const manejarNuevoArticulo = () => {
     setArticuloEditando(undefined);
@@ -95,10 +102,15 @@ const PaginaArticulos: React.FC = () => {
   const manejarGuardarArticulo = async (datos: CrearArticuloInput): Promise<boolean> => {
     try {
       if (articuloEditando) {
-        // TODO: Implementar actualización
-        message.info('Funcionalidad de edición pendiente');
-        return false;
+        // Actualizar artículo existente
+        const resultado = await actualizarArticulo(articuloEditando.id, datos);
+        if (resultado) {
+          setMostrarFormulario(false);
+          setArticuloEditando(undefined);
+          return true;
+        }
       } else {
+        // Crear nuevo artículo
         const resultado = await crearArticulo(datos);
         if (resultado) {
           setMostrarFormulario(false);
@@ -132,26 +144,56 @@ const PaginaArticulos: React.FC = () => {
     });
   };
 
+  const obtenerIconoTipo = (tipo: TipoArticulo) => {
+    switch (tipo) {
+      case TipoArticulo.PRODUCTO:
+        return <BoxPlotOutlined style={{ color: '#1890ff' }} />;
+      case TipoArticulo.SERVICIO:
+        return <ToolOutlined style={{ color: '#52c41a' }} />;
+      case TipoArticulo.GASTO:
+        return <WalletOutlined style={{ color: '#fa8c16' }} />;
+      default:
+        return <ShoppingCartOutlined />;
+    }
+  };
+
+  const obtenerNombreTipo = (tipo: TipoArticulo) => {
+    switch (tipo) {
+      case TipoArticulo.PRODUCTO: return 'Producto';
+      case TipoArticulo.SERVICIO: return 'Servicio';
+      case TipoArticulo.GASTO: return 'Gasto';
+      default: return tipo;
+    }
+  };
+
+  const obtenerColorTipo = (tipo: TipoArticulo) => {
+    switch (tipo) {
+      case TipoArticulo.PRODUCTO: return 'blue';
+      case TipoArticulo.SERVICIO: return 'green';
+      case TipoArticulo.GASTO: return 'orange';
+      default: return 'default';
+    }
+  };
+
   // Configuración de columnas de la tabla
   const columnas: ColumnsType<Articulo> = [
     {
-      title: 'Producto/Servicio',
+      title: 'Artículo',
       dataIndex: 'nombre',
       key: 'nombre',
       render: (nombre: string, record: Articulo) => (
         <div>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
-            {record.tipo === TipoArticulo.PRODUCTO ? (
-              <BoxPlotOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
-            ) : (
-              <ToolOutlined style={{ marginRight: '8px', color: '#52c41a' }} />
-            )}
-            <Text strong style={{ fontSize: '14px' }}>{nombre}</Text>
+            {obtenerIconoTipo(record.tipo)}
+            <Text strong style={{ fontSize: '14px', marginLeft: '8px' }}>{nombre}</Text>
             {!record.activo && (
               <Tag color="default" style={{ marginLeft: '8px' }}>Inactivo</Tag>
             )}
-            {record.stock <= (record.stockMinimo || 0) && record.tipo === TipoArticulo.PRODUCTO && (
+            {record.tipo === TipoArticulo.PRODUCTO && record.stock <= (record.stockMinimo || 0) && (
               <Tag color="red" style={{ marginLeft: '8px' }}>Stock Bajo</Tag>
+            )}
+            {record.tipo === TipoArticulo.GASTO && record.esRecurrente && (
+              <Tag color="purple" style={{ marginLeft: '8px' }}>Recurrente</Tag>
             )}
           </div>
           {record.descripcion && (
@@ -174,13 +216,14 @@ const PaginaArticulos: React.FC = () => {
       key: 'tipo',
       width: 100,
       render: (tipo: TipoArticulo) => (
-        <Tag color={tipo === TipoArticulo.PRODUCTO ? 'blue' : 'green'}>
-          {tipo === TipoArticulo.PRODUCTO ? 'Producto' : 'Servicio'}
+        <Tag color={obtenerColorTipo(tipo)}>
+          {obtenerNombreTipo(tipo)}
         </Tag>
       ),
       filters: [
         { text: 'Productos', value: TipoArticulo.PRODUCTO },
         { text: 'Servicios', value: TipoArticulo.SERVICIO },
+        { text: 'Gastos', value: TipoArticulo.GASTO },
       ],
       onFilter: (value, record) => record.tipo === value,
     },
@@ -205,7 +248,7 @@ const PaginaArticulos: React.FC = () => {
       ),
     },
     {
-      title: 'Precio',
+      title: 'Precio/Monto',
       dataIndex: 'precio',
       key: 'precio',
       width: 100,
@@ -224,7 +267,7 @@ const PaginaArticulos: React.FC = () => {
       width: 80,
       align: 'center',
       render: (stock: number, record: Articulo) => {
-        if (record.tipo === TipoArticulo.SERVICIO) {
+        if (record.tipo !== TipoArticulo.PRODUCTO) {
           return <Text type="secondary">N/A</Text>;
         }
         
@@ -282,18 +325,18 @@ const PaginaArticulos: React.FC = () => {
     <>
       <Head>
         <title>Artículos - Mi ERP Personal</title>
-        <meta name="description" content="Gestiona tu inventario de productos y servicios" />
+        <meta name="description" content="Gestiona tu inventario de productos, servicios y gastos" />
       </Head>
 
       <div style={{ padding: '0' }}>
         {/* Encabezado */}
-        <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <Title level={2} style={{ margin: 0 }}>
               Inventario
             </Title>
             <Text type="secondary" style={{ fontSize: '16px' }}>
-              Gestiona tu inventario de productos y servicios
+              Gestiona tu inventario de productos, servicios y gastos
             </Text>
           </div>
           <Button
@@ -341,6 +384,19 @@ const PaginaArticulos: React.FC = () => {
           <Col xs={24} sm={6}>
             <Card>
               <Statistic
+                title="Gastos"
+                value={gastos.length}
+                prefix={<WalletOutlined style={{ color: '#722ed1' }} />}
+                valueStyle={{ color: '#722ed1' }}
+              />
+            </Card>
+          </Col>
+        </Row>
+
+        <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+          <Col xs={24} sm={6}>
+            <Card>
+              <Statistic
                 title="Stock Bajo"
                 value={stockBajo.length}
                 prefix={<ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />}
@@ -353,7 +409,7 @@ const PaginaArticulos: React.FC = () => {
         {/* Filtros */}
         <Card style={{ marginBottom: '24px' }}>
           <Row gutter={[16, 16]}>
-            <Col xs={24} sm={12} md={8}>
+            <Col xs={24} sm={12} md={6}>
               <Input
                 placeholder="Buscar por nombre, descripción o código..."
                 prefix={<SearchOutlined />}
@@ -372,6 +428,7 @@ const PaginaArticulos: React.FC = () => {
               >
                 <Select.Option value={TipoArticulo.PRODUCTO}>Productos</Select.Option>
                 <Select.Option value={TipoArticulo.SERVICIO}>Servicios</Select.Option>
+                <Select.Option value={TipoArticulo.GASTO}>Gastos</Select.Option>
               </Select>
             </Col>
             <Col xs={24} sm={12} md={6}>
@@ -389,14 +446,14 @@ const PaginaArticulos: React.FC = () => {
                 ))}
               </Select>
             </Col>
-            <Col xs={24} sm={12} md={6}>
+            <Col xs={24} sm={12} md={8}>
               <Button
                 type={soloStockBajo ? 'primary' : 'default'}
                 icon={<ExclamationCircleOutlined />}
                 onClick={() => setSoloStockBajo(!soloStockBajo)}
                 style={{ width: '100%' }}
               >
-                Solo Stock Bajo
+                Solo Stock Bajo (Productos)
               </Button>
             </Col>
           </Row>
@@ -426,7 +483,7 @@ const PaginaArticulos: React.FC = () => {
                 <div>
                   <Title level={4}>No hay artículos</Title>
                   <Text type="secondary">
-                    Comienza agregando tu primer producto o servicio
+                    Comienza agregando tu primer producto, servicio o gasto
                   </Text>
                 </div>
               }
