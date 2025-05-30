@@ -8,13 +8,13 @@ import {
   respuestaError,
   validarMetodos,
   calcularPaginacion
-} from '@/src/lib/middleware';
+} from '@/lib/middleware';
 import { 
   validarDatos, 
   esquemaCrearTransaccion, 
   esquemaPaginacion,
   esquemaFiltrosTransaccion
-} from '@/src/lib/validaciones';
+} from '@/lib/validaciones';
 
 const prisma = new PrismaClient();
 

@@ -7,11 +7,11 @@ import {
   respuestaExito,
   respuestaError,
   validarMetodos
-} from '@/src/lib/middleware';
+} from '@/lib/middleware';
 import { 
   validarDatos, 
   esquemaCrearCategoria
-} from '@/src/lib/validaciones';
+} from '@/lib/validaciones';
 
 const prisma = new PrismaClient();
 

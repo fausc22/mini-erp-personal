@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
-import { respuestaExito, respuestaError } from '@/src/lib/middleware';
+import { respuestaExito, respuestaError } from '@/lib/middleware';
 
 const prisma = new PrismaClient();
 

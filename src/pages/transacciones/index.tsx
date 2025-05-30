@@ -27,9 +27,9 @@ import {
   TrendingUpOutlined,
   TrendingDownOutlined,
 } from '@ant-design/icons';
-import { useApp } from '@/src/context/AppContext';
+import { useApp } from '@/context/AppContext';
 import { Transaccion, TipoTransaccion, CrearTransaccionInput } from '@/types';
-import FormularioTransaccion from '@/src/components/forms/FormularioTransaccion';
+import FormularioTransaccion from '@/components/forms/FormularioTransaccion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Head from 'next/head';

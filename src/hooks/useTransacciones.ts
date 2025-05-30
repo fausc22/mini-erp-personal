@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useApp } from '@/src/context/AppContext';
+import { useApp } from '@/context/AppContext';
 import { 
   Transaccion, 
   TipoTransaccion, 
   FiltrosTransaccion,
   Moneda,
   DatosGrafico 
-} from '@/src/types';
+} from '@/types';
 import { startOfMonth, endOfMonth, format, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 

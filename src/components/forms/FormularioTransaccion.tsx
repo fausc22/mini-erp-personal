@@ -26,13 +26,13 @@ import {
   TagsOutlined,
   FileTextOutlined,
 } from '@ant-design/icons';
-import { useApp } from '@/src/context/AppContext';
+import { useApp } from '@/context/AppContext';
 import { 
   TipoTransaccion, 
   CrearTransaccionInput, 
   Transaccion,
   TipoCategoria 
-} from '@/src/types';
+} from '@/types';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 

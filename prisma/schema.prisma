@@ -11,7 +11,7 @@ model Usuario {
   id          String        @id @default(cuid())
   nombre      String
   email       String        @unique
-  contraseña  String
+  password  String
   creadoEn    DateTime      @default(now())
   actualizadoEn DateTime    @updatedAt
 

@@ -2,9 +2,9 @@ import React from 'react';
 import { useRouter } from 'next/router';
 import { Typography, Button, Space } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
-import { useApp } from '@/src/context/AppContext';
-import { CrearTransaccionInput } from '@/src/types';
-import FormularioTransaccion from '@/src/components/forms/FormularioTransaccion';
+import { useApp } from '@/context/AppContext';
+import { CrearTransaccionInput } from '@/types';
+import FormularioTransaccion from '@/components/forms/FormularioTransaccion';
 import Head from 'next/head';
 
 const { Title, Text } = Typography;

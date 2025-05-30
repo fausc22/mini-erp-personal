@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { Spin, Typography } from 'antd';
-import { useApp } from '@/src/context/AppContext';
+import { useApp } from '@/context/AppContext';
 import Head from 'next/head';
 
 const { Title, Text } = Typography;

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { TipoCuenta, TipoTransaccion, TipoArticulo, TipoCategoria, Moneda } from '../types';
+import { TipoCuenta, TipoTransaccion, TipoArticulo, TipoCategoria, Moneda } from '@/types';
 
 // Validaciones para Usuario
 export const esquemaCrearUsuario = z.object({

@@ -1,10 +1,11 @@
 import React from 'react';
 import type { AppProps } from 'next/app';
 import { ConfigProvider } from 'antd';
-import { AppProvider } from '@/src/context/AppContext';
-import LayoutPrincipal from '@/src/components/layout/MainLayout';
+import { AppProvider } from '@/context/AppContext';
+import LayoutPrincipal from '@/components/layout/MainLayout';
 import { useRouter } from 'next/router';
 import esES from 'antd/locale/es_ES';
+// Cambiar import de CSS para evitar problemas de SSR
 import 'antd/dist/reset.css';
 import '@/styles/globals.css';
 

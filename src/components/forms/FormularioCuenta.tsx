@@ -30,7 +30,7 @@ import {
   Moneda, 
   CrearCuentaInput, 
   Cuenta 
-} from '@/src/types';
+} from '@/types';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;

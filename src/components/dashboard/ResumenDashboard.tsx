@@ -10,8 +10,8 @@ import {
   DollarOutlined,
   EuroOutlined,
 } from '@ant-design/icons';
-import { useApp } from '@/src/context/AppContext';
-import { Moneda, TipoTransaccion } from '@/src/types';
+import { useApp } from '@/context/AppContext';
+import { Moneda, TipoTransaccion } from '@/types';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 

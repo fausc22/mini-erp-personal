@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { validarDatos, esquemaLogin } from '../../../lib/validaciones';
+import { validarDatos, esquemaLogin } from '@/lib/validaciones';
 
 const prisma = new PrismaClient();
 
@@ -34,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         id: true,
         nombre: true,
         email: true,
-        contraseña: true,
+        password: true,
       },
     });
 
@@ -46,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Verificar contraseña
-    const contraseñaValida = await bcrypt.compare(contraseña, usuario.contraseña);
+    const contraseñaValida = await bcrypt.compare(contraseña, usuario.password);
     if (!contraseñaValida) {
       return res.status(401).json({
         exito: false,
@@ -65,7 +65,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     );
 
     // Remover contraseña de la respuesta
-    const { contraseña: _, ...usuarioSinContraseña } = usuario;
+    const { password: _, ...usuarioSinContraseña } = usuario;
 
     res.status(200).json({
       exito: true,

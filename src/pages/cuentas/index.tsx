@@ -29,9 +29,9 @@ import {
   EyeOutlined,
   DollarOutlined,
 } from '@ant-design/icons';
-import { useApp } from '@/src/context/AppContext';
+import { useApp } from '@/context/AppContext';
 import { Cuenta, TipoCuenta, Moneda, CrearCuentaInput } from '@/types';
-import FormularioCuenta from '@/src/components/forms/FormularioCuenta';
+import FormularioCuenta from '@/components/forms/FormularioCuenta';
 import Head from 'next/head';
 
 const { Title, Text } = Typography;

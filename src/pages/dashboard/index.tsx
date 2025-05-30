@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { Spin } from 'antd';
-import { useApp } from '@/src/context/AppContext';
-import ResumenDashboard from '@/src/components/dashboard/ResumenDashboard';
+import { useApp } from '@/context/AppContext';
+import ResumenDashboard from '@/components/dashboard/ResumenDashboard';
 import Head from 'next/head';
 
 const PaginaDashboard: React.FC = () => {

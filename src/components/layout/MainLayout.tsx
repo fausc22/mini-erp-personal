@@ -19,7 +19,7 @@ import {
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '@/context/AppContext';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;

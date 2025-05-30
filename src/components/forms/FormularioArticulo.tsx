@@ -28,13 +28,13 @@ import {
   ToolOutlined,
   InfoCircleOutlined,
 } from '@ant-design/icons';
-import { useApp } from '@/src/context/AppContext';
+import { useApp } from '@/context/AppContext';
 import { 
   TipoArticulo, 
   TipoCategoria,
   CrearArticuloInput, 
   Articulo 
-} from '@/src/types';
+} from '@/types';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;

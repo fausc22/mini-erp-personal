@@ -12,7 +12,7 @@ import {
   CrearTransaccionInput,
   CrearArticuloInput,
   CrearCategoriaInput
-} from '../types';
+} from '@/types';
 
 // Tipos de acciones
 type AccionApp = 

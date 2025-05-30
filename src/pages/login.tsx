@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { useApp } from '@/src/context/AppContext';
-import FormularioLogin from '@/src/components/auth/LoginForm';
+import { useApp } from '@/context/AppContext';
+import FormularioLogin from '@/components/auth/LoginForm';
 import Head from 'next/head';
 
 const PaginaLogin: React.FC = () => {
