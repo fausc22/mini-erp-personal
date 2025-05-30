@@ -11,7 +11,7 @@ export const esquemaCrearUsuario = z.object({
     .email('Debe ser un email válido')
     .max(255, 'El email no puede exceder 255 caracteres')
     .toLowerCase(),
-  contraseña: z.string()
+  password: z.string() // ✅ Cambiar de 'contraseña' a 'password'
     .min(6, 'La contraseña debe tener al menos 6 caracteres')
     .max(100, 'La contraseña no puede exceder 100 caracteres')
     .regex(/^(?=.*[a-zA-Z])(?=.*\d)/, 'La contraseña debe contener al menos una letra y un número'),
@@ -19,7 +19,7 @@ export const esquemaCrearUsuario = z.object({
 
 export const esquemaLogin = z.object({
   email: z.string().email('Email inválido').toLowerCase(),
-  contraseña: z.string().min(1, 'La contraseña es requerida'),
+  password: z.string().min(1, 'La contraseña es requerida'), // ✅ Cambiar aquí también
 });
 
 export const esquemaActualizarUsuario = z.object({

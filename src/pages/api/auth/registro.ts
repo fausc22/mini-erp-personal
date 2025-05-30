@@ -21,7 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ));
     }
 
-    const { nombre, email, contraseña } = validacion.datos!;
+    const { nombre, email, password } = validacion.datos!;
 
     // Verificar si el usuario ya existe
     const usuarioExistente = await prisma.usuario.findUnique({
@@ -35,22 +35,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Encriptar contraseña
-    const contraseñaEncriptada = await encriptarContraseña(contraseña);
+    const contraseñaEncriptada = await encriptarContraseña(password);
 
     // Crear usuario
     const nuevoUsuario = await prisma.usuario.create({
-      data: {
-        nombre,
-        email,
-        contraseña: contraseñaEncriptada,
-      },
-      select: {
-        id: true,
-        nombre: true,
-        email: true,
-        creadoEn: true,
-      },
-    });
+    data: {
+      nombre,
+      email,
+      password: contraseñaEncriptada, // ✅ Cambiar de 'contraseña' a 'password'
+    },
+    select: {
+      id: true,
+      nombre: true,
+      email: true,
+      creadoEn: true,
+    },
+  });
 
     // Crear categorías por defecto
     const categoriasDefecto = [

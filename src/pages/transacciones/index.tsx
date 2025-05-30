@@ -24,8 +24,7 @@ import {
   EditOutlined,
   DeleteOutlined,
   MoreOutlined,
-  TrendingUpOutlined,
-  TrendingDownOutlined,
+  
 } from '@ant-design/icons';
 import { useApp } from '@/context/AppContext';
 import { Transaccion, TipoTransaccion, CrearTransaccionInput } from '@/types';
@@ -147,7 +146,7 @@ const PaginaTransacciones: React.FC = () => {
       render: (tipo: TipoTransaccion) => (
         <Tag 
           color={tipo === TipoTransaccion.INGRESO ? 'green' : 'red'}
-          icon={tipo === TipoTransaccion.INGRESO ? <TrendingUpOutlined /> : <TrendingDownOutlined />}
+          
         >
           {tipo === TipoTransaccion.INGRESO ? 'Ingreso' : 'Gasto'}
         </Tag>
@@ -304,7 +303,7 @@ const PaginaTransacciones: React.FC = () => {
                 title="Total Ingresos"
                 value={totalIngresos}
                 precision={2}
-                prefix={<TrendingUpOutlined style={{ color: '#52c41a' }} />}
+                
                 formatter={(value) => formatearMoneda(Number(value))}
                 valueStyle={{ color: '#52c41a' }}
               />
@@ -316,7 +315,7 @@ const PaginaTransacciones: React.FC = () => {
                 title="Total Gastos"
                 value={totalGastos}
                 precision={2}
-                prefix={<TrendingDownOutlined style={{ color: '#ff4d4f' }} />}
+                
                 formatter={(value) => formatearMoneda(Number(value))}
                 valueStyle={{ color: '#ff4d4f' }}
               />

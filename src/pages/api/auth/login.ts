@@ -25,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const { email, contraseña } = validacion.datos!;
+    const { email, password } = validacion.datos!;
 
     // Buscar usuario
     const usuario = await prisma.usuario.findUnique({
@@ -46,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Verificar contraseña
-    const contraseñaValida = await bcrypt.compare(contraseña, usuario.password);
+    const contraseñaValida = await bcrypt.compare(password, usuario.password);
     if (!contraseñaValida) {
       return res.status(401).json({
         exito: false,

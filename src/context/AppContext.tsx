@@ -157,14 +157,14 @@ export function AppProvider({ children }: PropiedadesAppProvider) {
   const [estado, dispatch] = useReducer(reducerApp, estadoInicial);
 
   // Funciones de autenticación
-  const iniciarSesion = async (email: string, contraseña: string): Promise<boolean> => {
+  const iniciarSesion = async (email: string, password: string): Promise<boolean> => {
     try {
       dispatch({ tipo: 'ESTABLECER_CARGANDO', payload: true });
       
       const respuesta = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, contraseña }),
+        body: JSON.stringify({ email, password }),
       });
       
       const datos = await respuesta.json();

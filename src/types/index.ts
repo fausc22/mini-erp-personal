@@ -39,13 +39,13 @@ export interface EntidadBase {
 export interface Usuario extends EntidadBase {
   nombre: string;
   email: string;
-  contraseña: string;
+  password: string; // ✅ Cambiar de 'contraseña' a 'password'
 }
 
 export interface CrearUsuarioInput {
   nombre: string;
   email: string;
-  contraseña: string;
+  password: string; // ✅ Cambiar aquí también
 }
 
 export interface ActualizarUsuarioInput extends Partial<CrearUsuarioInput> {
@@ -265,7 +265,7 @@ export interface ContextoAppTipo {
   categorias: Categoria[];
   cargando: boolean;
   error: string | null;
-  iniciarSesion: (email: string, contraseña: string) => Promise<boolean>;
+  iniciarSesion: (email: string, password: string) => Promise<boolean>;
   cerrarSesion: () => void;
   actualizarDatos: () => Promise<void>;
   crearCuenta: (datos: CrearCuentaInput) => Promise<Cuenta | null>;

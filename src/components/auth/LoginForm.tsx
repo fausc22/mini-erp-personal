@@ -10,14 +10,14 @@ const { Title, Text, Link } = Typography;
 
 interface DatosLogin {
   email: string;
-  contraseña: string;
+  password: string; // ✅ Cambiar de 'contraseña' a 'password'
 }
 
 interface DatosRegistro {
   nombre: string;
   email: string;
-  contraseña: string;
-  confirmarContraseña: string;
+  password: string; // ✅ Cambiar aquí
+  confirmarPassword: string; // ✅ Y aquí también
 }
 
 const FormularioLogin: React.FC = () => {
@@ -32,7 +32,7 @@ const FormularioLogin: React.FC = () => {
     setError(null);
 
     try {
-      const exito = await iniciarSesion(valores.email, valores.contraseña);
+      const exito = await iniciarSesion(valores.email, valores.password);
       if (exito) {
         router.push('/dashboard');
       } else {
@@ -49,7 +49,7 @@ const FormularioLogin: React.FC = () => {
     setCargando(true);
     setError(null);
 
-    if (valores.contraseña !== valores.confirmarContraseña) {
+    if (valores.password !== valores.confirmarPassword) {
       setError('Las contraseñas no coinciden');
       setCargando(false);
       return;
@@ -62,7 +62,7 @@ const FormularioLogin: React.FC = () => {
         body: JSON.stringify({
           nombre: valores.nombre,
           email: valores.email,
-          contraseña: valores.contraseña,
+          password: valores.password,
         }),
       });
 
@@ -70,7 +70,7 @@ const FormularioLogin: React.FC = () => {
 
       if (datos.exito) {
         // Automáticamente iniciar sesión después del registro
-        await iniciarSesion(valores.email, valores.contraseña);
+        await iniciarSesion(valores.email, valores.password);
         router.push('/dashboard');
       } else {
         setError(datos.error || 'Error al crear la cuenta');
@@ -146,7 +146,7 @@ const FormularioLogin: React.FC = () => {
               </Form.Item>
 
               <Form.Item
-                name="contraseña"
+                name="password"
                 label="Contraseña"
                 rules={[{ required: true, message: 'Por favor ingresa tu contraseña' }]}
               >
@@ -214,7 +214,7 @@ const FormularioLogin: React.FC = () => {
               </Form.Item>
 
               <Form.Item
-                name="contraseña"
+                name="password"
                 label="Contraseña"
                 rules={[
                   { required: true, message: 'Por favor ingresa una contraseña' },
@@ -229,14 +229,14 @@ const FormularioLogin: React.FC = () => {
               </Form.Item>
 
               <Form.Item
-                name="confirmarContraseña"
+                name="confirmarPassword"
                 label="Confirmar Contraseña"
-                dependencies={['contraseña']}
+                dependencies={['password']}
                 rules={[
                   { required: true, message: 'Por favor confirma tu contraseña' },
                   ({ getFieldValue }) => ({
                     validator(_, value) {
-                      if (!value || getFieldValue('contraseña') === value) {
+                      if (!value || getFieldValue('password') === value) {
                         return Promise.resolve();
                       }
                       return Promise.reject(new Error('Las contraseñas no coinciden'));

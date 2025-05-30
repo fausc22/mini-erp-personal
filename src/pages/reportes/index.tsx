@@ -16,8 +16,7 @@ import {
   BarChartOutlined,
   LineChartOutlined,
   PieChartOutlined,
-  TrendingUpOutlined,
-  TrendingDownOutlined,
+  
   CalendarOutlined,
   FileExcelOutlined,
   FilePdfOutlined,
@@ -187,7 +186,7 @@ const PaginaReportes: React.FC = () => {
                 title="Total Ingresos"
                 value={estadisticas.totalIngresos}
                 precision={2}
-                prefix={<TrendingUpOutlined style={{ color: '#52c41a' }} />}
+                
                 formatter={(value) => formatearMoneda(Number(value))}
                 valueStyle={{ color: '#52c41a' }}
               />
@@ -199,7 +198,7 @@ const PaginaReportes: React.FC = () => {
                 title="Total Gastos"
                 value={estadisticas.totalGastos}
                 precision={2}
-                prefix={<TrendingDownOutlined style={{ color: '#ff4d4f' }} />}
+                
                 formatter={(value) => formatearMoneda(Number(value))}
                 valueStyle={{ color: '#ff4d4f' }}
               />

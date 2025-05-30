@@ -4,8 +4,7 @@ import React from 'react';
 import { Row, Col, Card, Statistic, Typography, Badge, Alert, Empty } from 'antd';
 import {
   WalletOutlined,
-  TrendingUpOutlined,
-  TrendingDownOutlined,
+  
   ShoppingCartOutlined,
   DollarOutlined,
   EuroOutlined,
@@ -139,7 +138,7 @@ const ResumenDashboard: React.FC = () => {
               title="Ingresos del Mes"
               value={ingresosMes}
               precision={2}
-              prefix={<TrendingUpOutlined />}
+              
               formatter={(value) => formatearMoneda(Number(value))}
               valueStyle={{ 
                 color: '#3f8600',
@@ -163,7 +162,7 @@ const ResumenDashboard: React.FC = () => {
               title="Gastos del Mes"
               value={gastosMes}
               precision={2}
-              prefix={<TrendingDownOutlined />}
+              
               formatter={(value) => formatearMoneda(Number(value))}
               valueStyle={{ 
                 color: '#cf1322',
