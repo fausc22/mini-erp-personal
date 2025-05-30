@@ -1,0 +1,417 @@
+/* Estilos globales para Mini ERP Personal */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* Reset y configuración base */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #262626;
+  background-color: #f5f5f5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Mejoras para accesibilidad y UX en dispositivos móviles */
+@media (max-width: 768px) {
+  html {
+    font-size: 18px; /* Texto más grande en móviles */
+  }
+  
+  body {
+    font-size: 18px;
+  }
+}
+
+/* Asegurar que todos los elementos interactivos tengan al menos 44px */
+button,
+input,
+select,
+textarea,
+.ant-btn,
+.ant-input,
+.ant-select-selector,
+.ant-picker,
+.ant-menu-item,
+.ant-dropdown-menu-item {
+  min-height: 44px !important;
+  touch-action: manipulation;
+}
+
+/* Mejoras específicas para Ant Design */
+.ant-layout {
+  background: #f5f5f5;
+}
+
+.ant-layout-content {
+  background: #ffffff;
+}
+
+/* Encabezados más grandes y legibles */
+.ant-typography h1,
+.ant-typography h2,
+.ant-typography h3,
+.ant-typography h4,
+.ant-typography h5,
+.ant-typography h6 {
+  font-weight: 600;
+  line-height: 1.3;
+  margin-bottom: 16px;
+}
+
+/* Texto del cuerpo más legible */
+.ant-typography,
+.ant-typography p {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #262626;
+}
+
+/* Botones con mejor contraste y tamaño */
+.ant-btn {
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  min-height: 44px;
+  font-size: 16px;
+}
+
+.ant-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.ant-btn-primary {
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  border: none;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+}
+
+.ant-btn-primary:hover {
+  background: linear-gradient(135deg, #096dd9 0%, #0050b3 100%);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.4);
+}
+
+/* Tarjetas con mejor sombra y espaciado */
+.ant-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #f0f0f0;
+  transition: box-shadow 0.3s ease;
+}
+
+.ant-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.ant-card-head {
+  border-bottom: 1px solid #f0f0f0;
+  font-weight: 600;
+}
+
+/* Inputs más grandes y accesibles */
+.ant-input,
+.ant-input-number,
+.ant-select-selector,
+.ant-picker {
+  border-radius: 6px;
+  font-size: 16px;
+  min-height: 44px;
+  transition: all 0.3s ease;
+}
+
+.ant-input:focus,
+.ant-input-number:focus,
+.ant-select-focused .ant-select-selector,
+.ant-picker:hover,
+.ant-picker-focused {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* Formularios más espaciados */
+.ant-form-item {
+  margin-bottom: 24px;
+}
+
+.ant-form-item-label {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.ant-form-item-required::before {
+  color: #ff4d4f !important;
+  font-size: 18px;
+}
+
+/* Tablas más legibles */
+.ant-table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 600;
+  font-size: 16px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.ant-table-tbody > tr > td {
+  font-size: 14px;
+  padding: 16px;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: #f8f9fa;
+}
+
+/* Menús más espaciados */
+.ant-menu-item,
+.ant-menu-submenu-title {
+  min-height: 48px;
+  line-height: 48px;
+  font-size: 16px;
+  margin: 4px 0;
+  border-radius: 6px;
+}
+
+.ant-menu-item-selected {
+  background-color: #e6f7ff;
+  color: #1890ff;
+  font-weight: 600;
+}
+
+/* Modales más atractivos */
+.ant-modal-content {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ant-modal-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ant-modal-title {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/* Alertas más prominentes */
+.ant-alert {
+  border-radius: 8px;
+  font-size: 16px;
+  padding: 16px;
+}
+
+/* Tags y badges más legibles */
+.ant-tag {
+  font-size: 14px;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-weight: 500;
+}
+
+.ant-badge-count {
+  font-size: 12px;
+  min-width: 20px;
+  height: 20px;
+  line-height: 20px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+/* Estadísticas más atractivas */
+.ant-statistic-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #8c8c8c;
+  margin-bottom: 8px;
+}
+
+.ant-statistic-content {
+  font-weight: 700;
+}
+
+/* Mejoras para dispositivos táctiles */
+@media (hover: none) and (pointer: coarse) {
+  .ant-btn:hover {
+    transform: none;
+  }
+  
+  .ant-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Scrollbars personalizados para webkit */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Animaciones suaves */
+.ant-spin-container,
+.ant-table-tbody > tr,
+.ant-card,
+.ant-btn,
+.ant-input,
+.ant-select-selector {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Estados de focus mejorados para accesibilidad */
+*:focus {
+  outline: 2px solid #1890ff;
+  outline-offset: 2px;
+}
+
+.ant-btn:focus,
+.ant-input:focus,
+.ant-select-focused .ant-select-selector {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.3);
+}
+
+/* Mejoras para alta densidad de píxeles */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .ant-btn,
+  .ant-card,
+  .ant-input {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Clases utilitarias */
+.texto-centrado {
+  text-align: center;
+}
+
+.espaciado-superior {
+  margin-top: 24px;
+}
+
+.espaciado-inferior {
+  margin-bottom: 24px;
+}
+
+.sin-margen {
+  margin: 0;
+}
+
+.sin-padding {
+  padding: 0;
+}
+
+.texto-grande {
+  font-size: 18px;
+}
+
+.texto-pequeño {
+  font-size: 14px;
+}
+
+.peso-normal {
+  font-weight: 400;
+}
+
+.peso-medio {
+  font-weight: 500;
+}
+
+.peso-semibold {
+  font-weight: 600;
+}
+
+.peso-bold {
+  font-weight: 700;
+}
+
+/* Clases para colores temáticos */
+.color-exito {
+  color: #52c41a;
+}
+
+.color-error {
+  color: #ff4d4f;
+}
+
+.color-advertencia {
+  color: #faad14;
+}
+
+.color-info {
+  color: #1890ff;
+}
+
+.color-secundario {
+  color: #8c8c8c;
+}
+
+/* Responsive utilities */
+@media (max-width: 576px) {
+  .oculto-xs {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .oculto-sm {
+    display: none !important;
+  }
+}
+
+@media (max-width: 992px) {
+  .oculto-md {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  .oculto-lg {
+    display: none !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .ant-btn,
+  .ant-pagination,
+  .no-imprimir {
+    display: none !important;
+  }
+  
+  .ant-card {
+    box-shadow: none;
+    border: 1px solid #000;
+  }
+}

@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id          String        @id @default(cuid())
+  nombre      String
+  email       String        @unique
+  contraseña  String
+  creadoEn    DateTime      @default(now())
+  actualizadoEn DateTime    @updatedAt
+
+  cuentas      Cuenta[]
+  transacciones Transaccion[]
+  articulos     Articulo[]
+  categorias    Categoria[]
+
+  @@map("usuarios")
+}
+
+model Cuenta {
+  id            String       @id @default(cuid())
+  usuarioId     String
+  nombre        String
+  tipo          TipoCuenta
+  saldo         Float        @default(0)
+  descripcion   String?
+  color         String?      @default("#1890ff")
+  moneda        Moneda       @default(ARS)
+  activa        Boolean      @default(true)
+  creadaEn      DateTime     @default(now())
+  actualizadaEn DateTime     @updatedAt
+
+  usuario       Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  transacciones Transaccion[]
+
+  @@map("cuentas")
+}
+
+model Transaccion {
+  id            String           @id @default(cuid())
+  usuarioId     String
+  cuentaId      String
+  tipo          TipoTransaccion
+  monto         Float
+  descripcion   String
+  categoriaId   String
+  fecha         DateTime
+  notas         String?
+  creadaEn      DateTime         @default(now())
+  actualizadaEn DateTime         @updatedAt
+
+  usuario    Usuario    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  cuenta     Cuenta     @relation(fields: [cuentaId], references: [id], onDelete: Cascade)
+  categoria  Categoria  @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
+
+  @@map("transacciones")
+}
+
+model Articulo {
+  id            String        @id @default(cuid())
+  usuarioId     String
+  nombre        String
+  descripcion   String?
+  precio        Float
+  costo         Float?        @default(0)
+  stock         Int           @default(0)
+  stockMinimo   Int?          @default(0)
+  categoriaId   String
+  unidad        String?       @default("unidad")
+  codigoBarras  String?
+  activo        Boolean       @default(true)
+  tipo          TipoArticulo  @default(PRODUCTO)
+  creadoEn      DateTime      @default(now())
+  actualizadoEn DateTime      @updatedAt
+
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  categoria Categoria @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
+
+  @@map("articulos")
+}
+
+model Categoria {
+  id            String        @id @default(cuid())
+  usuarioId     String
+  nombre        String
+  tipo          TipoCategoria // PRODUCTO o SERVICIO
+  color         String        @default("#1890ff")
+  icono         String?
+  activa        Boolean       @default(true)
+  creadaEn      DateTime      @default(now())
+  actualizadaEn DateTime      @updatedAt
+
+  usuario       Usuario       @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, nombre, tipo])
+  @@map("categorias")
+}
+
+model Configuracion {
+  id          String   @id @default(cuid())
+  clave       String   @unique
+  valor       String
+  creadaEn    DateTime @default(now())
+  actualizadaEn DateTime @updatedAt
+
+  @@map("configuraciones")
+}
+
+// ENUMS
+
+enum TipoCuenta {
+  EFECTIVO
+  BANCO
+  TARJETA_CREDITO
+  INVERSION
+  OTRO
+}
+
+enum TipoTransaccion {
+  INGRESO
+  GASTO
+  TRANSFERENCIA
+}
+
+enum TipoArticulo {
+  PRODUCTO
+  SERVICIO
+}
+
+enum TipoCategoria {
+  PRODUCTO
+  SERVICIO
+}
+
+enum Moneda {
+  ARS
+  USD
+}
+
+
