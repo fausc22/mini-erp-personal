@@ -39,6 +39,7 @@ model Cuenta {
   usuario       Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   transacciones Transaccion[]
 
+  @@unique([usuarioId, nombre])
   @@map("cuentas")
 }
 
@@ -82,6 +83,8 @@ model Articulo {
   usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   categoria Categoria @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
 
+  @@unique([usuarioId, nombre])
+  @@unique([usuarioId, codigoBarras])
   @@map("articulos")
 }
 
@@ -89,7 +92,7 @@ model Categoria {
   id            String        @id @default(cuid())
   usuarioId     String
   nombre        String
-  tipo          TipoCategoria // PRODUCTO o SERVICIO
+  tipo          TipoCategoria
   color         String        @default("#1890ff")
   icono         String?
   activa        Boolean       @default(true)
@@ -97,6 +100,8 @@ model Categoria {
   actualizadaEn DateTime      @updatedAt
 
   usuario       Usuario       @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  transacciones Transaccion[]
+  articulos     Articulo[]
 
   @@unique([usuarioId, nombre, tipo])
   @@map("categorias")
@@ -142,5 +147,3 @@ enum Moneda {
   ARS
   USD
 }
-
-

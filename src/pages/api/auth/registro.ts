@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
-import { validarDatos, esquemaCrearUsuario } from '@/src/lib/validaciones';
+import { validarDatos, esquemaCrearUsuario } from '@/lib/validaciones';
 import { encriptarContraseña, manejarErrorPrisma, respuestaExito, respuestaError } from '@/lib/middleware';
 
 const prisma = new PrismaClient();

@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -129,7 +130,6 @@ export function respuestaError(error: string, detalles?: any) {
 
 // Función para encriptar contraseñas
 export async function encriptarContraseña(contraseña: string): Promise<string> {
-  const bcrypt = await import('bcryptjs');
   const salt = await bcrypt.genSalt(12);
   return bcrypt.hash(contraseña, salt);
 }
@@ -139,7 +139,6 @@ export async function verificarContraseña(
   contraseña: string, 
   hash: string
 ): Promise<boolean> {
-  const bcrypt = await import('bcryptjs');
   return bcrypt.compare(contraseña, hash);
 }
 
