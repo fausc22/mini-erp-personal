@@ -5,13 +5,16 @@ CREATE TYPE "TipoCuenta" AS ENUM ('EFECTIVO', 'BANCO', 'TARJETA_CREDITO', 'INVER
 CREATE TYPE "TipoTransaccion" AS ENUM ('INGRESO', 'GASTO', 'TRANSFERENCIA');
 
 -- CreateEnum
-CREATE TYPE "TipoArticulo" AS ENUM ('PRODUCTO', 'SERVICIO');
+CREATE TYPE "TipoArticulo" AS ENUM ('PRODUCTO', 'SERVICIO', 'GASTO');
 
 -- CreateEnum
-CREATE TYPE "TipoCategoria" AS ENUM ('PRODUCTO', 'SERVICIO');
+CREATE TYPE "TipoCategoria" AS ENUM ('PRODUCTO', 'SERVICIO', 'GASTO');
 
 -- CreateEnum
 CREATE TYPE "Moneda" AS ENUM ('ARS', 'USD');
+
+-- CreateEnum
+CREATE TYPE "Frecuencia" AS ENUM ('MENSUAL', 'TRIMESTRAL', 'ANUAL');
 
 -- CreateTable
 CREATE TABLE "usuarios" (
@@ -53,6 +56,7 @@ CREATE TABLE "transacciones" (
     "categoriaId" TEXT NOT NULL,
     "fecha" TIMESTAMP(3) NOT NULL,
     "notas" TEXT,
+    "articuloId" TEXT,
     "creadaEn" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "actualizadaEn" TIMESTAMP(3) NOT NULL,
 
@@ -74,6 +78,8 @@ CREATE TABLE "articulos" (
     "codigoBarras" TEXT,
     "activo" BOOLEAN NOT NULL DEFAULT true,
     "tipo" "TipoArticulo" NOT NULL DEFAULT 'PRODUCTO',
+    "esRecurrente" BOOLEAN DEFAULT false,
+    "frecuencia" "Frecuencia",
     "creadoEn" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "actualizadoEn" TIMESTAMP(3) NOT NULL,
 
@@ -135,6 +141,9 @@ ALTER TABLE "transacciones" ADD CONSTRAINT "transacciones_cuentaId_fkey" FOREIGN
 
 -- AddForeignKey
 ALTER TABLE "transacciones" ADD CONSTRAINT "transacciones_categoriaId_fkey" FOREIGN KEY ("categoriaId") REFERENCES "categorias"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "transacciones" ADD CONSTRAINT "transacciones_articuloId_fkey" FOREIGN KEY ("articuloId") REFERENCES "articulos"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "articulos" ADD CONSTRAINT "articulos_usuarioId_fkey" FOREIGN KEY ("usuarioId") REFERENCES "usuarios"("id") ON DELETE CASCADE ON UPDATE CASCADE;

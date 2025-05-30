@@ -36,6 +36,234 @@ async function handler(req: RequestConUsuario, res: NextApiResponse) {
   }
 }
 
+
+async function crearTransaccion(req: RequestConUsuario, res: NextApiResponse) {
+  try {
+    // Validar datos de entrada
+    const validacion = validarDatos(esquemaCrearTransaccion, req.body);
+    if (!validacion.exito) {
+      return res.status(400).json(respuestaError(
+        'Datos de transacción inválidos',
+        validacion.errores
+      ));
+    }
+
+    const datosTransaccion = validacion.datos!;
+
+    // Verificar que la cuenta pertenece al usuario
+    const cuenta = await prisma.cuenta.findFirst({
+      where: {
+        id: datosTransaccion.cuentaId,
+        usuarioId: req.usuarioId,
+        activa: true,
+      },
+    });
+
+    if (!cuenta) {
+      return res.status(404).json(respuestaError(
+        'Cuenta no encontrada o inactiva'
+      ));
+    }
+
+    // Verificar que la categoría pertenece al usuario
+    const categoria = await prisma.categoria.findFirst({
+      where: {
+        id: datosTransaccion.categoriaId,
+        usuarioId: req.usuarioId,
+        activa: true,
+      },
+    });
+
+    if (!categoria) {
+      return res.status(404).json(respuestaError(
+        'Categoría no encontrada o inactiva'
+      ));
+    }
+
+    // Verificar artículo si se proporciona
+    let articulo = null;
+    if (datosTransaccion.articuloId) {
+      articulo = await prisma.articulo.findFirst({
+        where: {
+          id: datosTransaccion.articuloId,
+          usuarioId: req.usuarioId,
+          activo: true,
+        },
+      });
+
+      if (!articulo) {
+        return res.status(404).json(respuestaError(
+          'Artículo no encontrado o inactivo'
+        ));
+      }
+
+      // Verificar stock suficiente si es una venta de producto
+      if (datosTransaccion.tipo === 'INGRESO' && articulo.tipo === 'PRODUCTO') {
+        if (articulo.stock <= 0) {
+          return res.status(400).json(respuestaError(
+            'Stock insuficiente para este producto'
+          ));
+        }
+      }
+    }
+
+    // Verificar saldo suficiente para gastos
+    if (datosTransaccion.tipo === 'GASTO' && cuenta.saldo < datosTransaccion.monto) {
+      return res.status(400).json(respuestaError(
+        'Saldo insuficiente en la cuenta'
+      ));
+    }
+
+    // Usar transacción de base de datos para mantener consistencia
+    const resultado = await prisma.$transaction(async (tx) => {
+      // Crear la transacción
+      const nuevaTransaccion = await tx.transaccion.create({
+        data: {
+          ...datosTransaccion,
+          usuarioId: req.usuarioId,
+        },
+        include: {
+          cuenta: {
+            select: {
+              id: true,
+              nombre: true,
+              tipo: true,
+              moneda: true,
+              color: true,
+            },
+          },
+          categoria: {
+            select: {
+              id: true,
+              nombre: true,
+              tipo: true,
+              color: true,
+              icono: true,
+            },
+          },
+          articulo: {
+            select: {
+              id: true,
+              nombre: true,
+              tipo: true,
+              precio: true,
+              stock: true,
+            },
+          },
+        },
+      });
+
+      // Actualizar saldo de la cuenta
+      const cambioSaldo = datosTransaccion.tipo === 'INGRESO' 
+        ? datosTransaccion.monto 
+        : -datosTransaccion.monto;
+
+      await tx.cuenta.update({
+        where: { id: datosTransaccion.cuentaId },
+        data: {
+          saldo: {
+            increment: cambioSaldo,
+          },
+          actualizadaEn: new Date(),
+        },
+      });
+
+      // 🆕 ACTUALIZAR STOCK SI ES NECESARIO
+      if (articulo && datosTransaccion.tipo === 'INGRESO' && articulo.tipo === 'PRODUCTO') {
+        // Es una venta de producto - reducir stock
+        await tx.articulo.update({
+          where: { id: articulo.id },
+          data: {
+            stock: {
+              decrement: 1, // Por defecto 1 unidad, se puede parametrizar
+            },
+            actualizadoEn: new Date(),
+          },
+        });
+      }
+
+      return nuevaTransaccion;
+    });
+
+    return res.status(201).json(respuestaExito(
+      resultado,
+      'Transacción creada exitosamente'
+    ));
+
+  } catch (error) {
+    const errorInfo = manejarErrorPrisma(error);
+    return res.status(errorInfo.estado).json(respuestaError(errorInfo.mensaje));
+  }
+}
+
+// 🆕 DELETE /api/transacciones/[id] - Implementar eliminación
+async function eliminarTransaccion(req: RequestConUsuario, res: NextApiResponse, id: string) {
+  try {
+    // Verificar que la transacción existe y pertenece al usuario
+    const transaccion = await prisma.transaccion.findFirst({
+      where: {
+        id,
+        usuarioId: req.usuarioId,
+      },
+      include: {
+        articulo: true,
+      },
+    });
+
+    if (!transaccion) {
+      return res.status(404).json(respuestaError('Transacción no encontrada'));
+    }
+
+    // Usar transacción de base de datos para mantener consistencia
+    await prisma.$transaction(async (tx) => {
+      // Revertir el efecto en el saldo de la cuenta
+      const cambioSaldo = transaccion.tipo === 'INGRESO' 
+        ? -transaccion.monto 
+        : transaccion.monto;
+
+      await tx.cuenta.update({
+        where: { id: transaccion.cuentaId },
+        data: {
+          saldo: {
+            increment: cambioSaldo,
+          },
+          actualizadaEn: new Date(),
+        },
+      });
+
+      // 🆕 REVERTIR CAMBIOS DE STOCK SI ES NECESARIO
+      if (transaccion.articulo && 
+          transaccion.tipo === 'INGRESO' && 
+          transaccion.articulo.tipo === 'PRODUCTO') {
+        // Era una venta - devolver stock
+        await tx.articulo.update({
+          where: { id: transaccion.articulo.id },
+          data: {
+            stock: {
+              increment: 1, // Devolver la unidad vendida
+            },
+            actualizadoEn: new Date(),
+          },
+        });
+      }
+
+      // Eliminar la transacción
+      await tx.transaccion.delete({
+        where: { id },
+      });
+    });
+
+    return res.status(200).json(respuestaExito(
+      null,
+      'Transacción eliminada exitosamente'
+    ));
+
+  } catch (error) {
+    const errorInfo = manejarErrorPrisma(error);
+    return res.status(errorInfo.estado).json(respuestaError(errorInfo.mensaje));
+  }
+}
+
 // GET /api/transacciones - Obtener transacciones del usuario
 async function obtenerTransacciones(req: RequestConUsuario, res: NextApiResponse) {
   try {
